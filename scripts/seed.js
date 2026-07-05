@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs all seed files in order. Idempotent.
+// Runs seed data into the database.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -7,10 +7,7 @@ import pg from 'pg';
 import { config } from '../src/config/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const seedFiles = [
-  '003_seed_dev.sql',
-  '012_seed_more_spots.sql',
-];
+const seedFiles = ['003_seed.sql'];
 
 async function main() {
   const pool = new pg.Pool({ connectionString: config.databaseUrl, ssl: config.pgSsl });

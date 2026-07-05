@@ -1,38 +1,36 @@
 services:
-  # PostgreSQL Database with PostGIS
   db:
     image: postgis/postgis:16-3.4
-    container_name: parking-db
+    container_name: betbingo-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: parking
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-parking}
-      POSTGRES_DB: parking
+      POSTGRES_USER: betbingo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-betbingo}
+      POSTGRES_DB: betbingo
     ports:
-      # Host 5433 → container 5432 (host 5432 is taken by a native Postgres)
-      - "5433:5432"
+      # Host 5434 → container 5432 (parking project uses 5433)
+      - "5434:5432"
     volumes:
-      - parking_pgdata:/var/lib/postgresql/data
+      - betbingo_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parking -d parking"]
+      test: ["CMD-SHELL", "pg_isready -U betbingo -d betbingo"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
-      - parking-net
+      - betbingo-net
 
-  # ParkAddis Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: parking-app
+    container_name: betbingo-app
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - DATABASE_URL=postgres://parking:${DB_PASSWORD:-parking}@db:5432/parking
+      - DATABASE_URL=postgres://betbingo:${DB_PASSWORD:-betbingo}@db:5432/betbingo
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
@@ -50,11 +48,11 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - parking-net
+      - betbingo-net
 
 volumes:
-  parking_pgdata:
+  betbingo_pgdata:
 
 networks:
-  parking-net:
+  betbingo-net:
     driver: bridge

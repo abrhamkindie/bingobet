@@ -1,11 +1,3 @@
-/**
- * Admin authentication routes.
- *
- * Mounted at `POST /api/admin/login` and `POST /api/admin/register`.
- * Registration is bootstrap-only (disabled in production).
- *
- * @module routes/auth
- */
 import { Router } from 'express';
 import * as adminRepo from '../db/repositories/admin.js';
 import { login, hashPassword } from '../services/authService.js';
@@ -17,14 +9,14 @@ import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import * as schemas from '../utils/schemas.js';
 
-/**
- * Creates the auth router.
- * @returns {import('express').Router}
- */
+import { createAdminGamesRouter } from './admin/games.routes.js';
+import { createAdminPlayersRouter } from './admin/players.routes.js';
+import { createAdminTransactionsRouter } from './admin/transactions.routes.js';
+import { createAdminDashboardRouter } from './admin/dashboard.routes.js';
+
 export function createAuthRouter() {
   const router = Router();
 
-  // Admin login
   router.post('/login',
     validate({ body: schemas.login }),
     asyncHandler(async (req, res) => {
@@ -40,7 +32,6 @@ export function createAuthRouter() {
       }
     }));
 
-  // Bootstrap first admin (dev only)
   router.post('/register',
     validate({ body: schemas.register }),
     asyncHandler(async (req, res) => {
@@ -49,9 +40,7 @@ export function createAuthRouter() {
       }
       const { email, password, name, role } = req.body;
       const existing = await adminRepo.getByEmail(email);
-      if (existing) {
-        throw new ConflictError('Admin already exists');
-      }
+      if (existing) throw new ConflictError('Admin already exists');
       const passwordHash = await hashPassword(password);
       const admin = await adminRepo.createAdmin({
         email,
@@ -62,6 +51,12 @@ export function createAuthRouter() {
       logger.info('Admin registered', { adminId: admin.id, email: admin.email });
       created(res, { id: admin.id, email: admin.email, name: admin.name, role: admin.role });
     }));
+
+  // Admin resource routes
+  router.use('/games', createAdminGamesRouter());
+  router.use('/players', createAdminPlayersRouter());
+  router.use('/transactions', createAdminTransactionsRouter());
+  router.use('/dashboard', createAdminDashboardRouter());
 
   return router;
 }

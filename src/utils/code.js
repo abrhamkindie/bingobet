@@ -1,17 +1,12 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import crypto from 'node:crypto';
 
-// Human-friendly confirmation code, e.g. "PK-7F3K9". Avoids ambiguous chars.
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-export function generateConfirmationCode(prefix = 'PK') {
-  let body = '';
-  for (let i = 0; i < 5; i++) {
-    body += ALPHABET[randomInt(ALPHABET.length)];
-  }
-  return `${prefix}-${body}`;
+export function generateConfirmationCode() {
+  const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
+  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `BB-${timestamp}${random}`;
 }
 
-// Opaque, unguessable token for QR check-in deep links (~22 url-safe chars).
-export function generateCheckinToken() {
-  return randomBytes(16).toString('base64url');
+export function generateTxRef(entityId) {
+  const timestamp = Date.now();
+  return `betbingo_${entityId}_${timestamp}`;
 }

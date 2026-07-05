@@ -1,7 +1,7 @@
 {
-  "name": "parking-bot",
+  "name": "betbingo-bot",
   "version": "0.1.0",
-  "description": "Telegram bot for finding and booking parking spots in Ethiopia (Addis Ababa)",
+  "description": "BetBingo - Telegram lottery and bingo game bot",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -33,14 +33,12 @@
     "grammy": "^1.30.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.23.0",
     "node-cron": "^4.5.0",
     "pg": "^8.12.0",
-    "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.0",
-    "sharp": "^0.33.2",
-    "staticmaps": "^1.13.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

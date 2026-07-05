@@ -7,14 +7,14 @@ import {
   ShoppingBag, Gem, Sparkles, History, Plus, RefreshCw
 } from 'lucide-react';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigate }) {
   const { player, reload } = useContext(PlayerContext);
   const [section, setSection] = useState(null);
 
   return (
     <div className="profile-orbit min-h-full px-4 pb-5 pt-4">
       {section === null && <ProfileHeader player={player} />}
-      {section === null && <WalletCard player={player} />}
+      {section === null && <WalletCard player={player} onDeposit={() => navigate('deposit')} />}
       {section === null && <MenuList player={player} setSection={setSection} />}
       {section === 'transactions' && <TransactionsSection onBack={() => setSection(null)} />}
       {section === 'language' && <LanguageSection onBack={() => setSection(null)} player={player} reload={reload} />}
@@ -25,21 +25,6 @@ export default function ProfileScreen() {
 
 function ProfileHeader({ player }) {
   const initials = (player?.name || player?.username || 'B').slice(0, 1).toUpperCase();
-  const { addToast } = useContext(ToastContext);
-
-  // Quick deposit handler
-  const handleQuickDeposit = async () => {
-    try {
-      const result = await api.deposit(100);
-      if (result?.checkoutUrl) {
-        window.open(result.checkoutUrl, '_blank');
-      } else {
-        addToast('Deposit initiated!', 'success');
-      }
-    } catch {
-      addToast('Deposit failed. Try again.', 'error');
-    }
-  };
 
   return (
     <div className="relative mb-5 animate-fade-in-up overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
@@ -66,25 +51,7 @@ function ProfileHeader({ player }) {
   );
 }
 
-function WalletCard({ player }) {
-  const { addToast } = useContext(ToastContext);
-  const [depositing, setDepositing] = useState(false);
-
-  const handleDeposit = async () => {
-    setDepositing(true);
-    try {
-      const result = await api.deposit(100);
-      if (result?.checkoutUrl) {
-        window.open(result.checkoutUrl, '_blank');
-      }
-      addToast('Opening payment page...', 'info');
-    } catch {
-      addToast('Deposit failed. Try again.', 'error');
-    } finally {
-      setDepositing(false);
-    }
-  };
-
+function WalletCard({ player, onDeposit }) {
   return (
     <div className="relative mb-4 animate-fade-in-up overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur" style={{ animationDelay: '0.1s' }}>
       <div className="pointer-events-none absolute -bottom-8 -right-8 h-28 w-28 rounded-full bg-emerald-400/10 blur-3xl" />
@@ -105,10 +72,9 @@ function WalletCard({ player }) {
 
       {/* Quick actions */}
       <div className="mt-3 flex gap-2">
-        <button onClick={handleDeposit} disabled={depositing}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 py-2.5 text-xs font-bold text-white shadow-[0_0_10px_rgba(34,211,238,0.15)] transition-all hover:from-cyan-500 hover:to-cyan-400 active:scale-95 disabled:opacity-60">
-          {depositing ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-          {depositing ? 'Opening...' : 'Deposit'}
+        <button onClick={onDeposit}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 py-2.5 text-xs font-bold text-white shadow-[0_0_10px_rgba(34,211,238,0.15)] transition-all hover:from-cyan-500 hover:to-cyan-400 active:scale-95">
+          <Plus size={14} /> Deposit
         </button>
       </div>
 

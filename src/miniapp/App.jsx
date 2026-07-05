@@ -5,6 +5,7 @@ import GamesScreen from './screens/GamesScreen.jsx';
 import DrawScreen from './screens/DrawScreen.jsx';
 import TicketsScreen from './screens/TicketsScreen.jsx';
 import ProfileScreen from './screens/ProfileScreen.jsx';
+import DepositScreen from './screens/DepositScreen.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Toast from './components/Toast.jsx';
 
@@ -81,6 +82,9 @@ export default function App() {
             </div>
             <div className={`absolute inset-0 overflow-y-auto ${screen === 'profile' ? 'z-10' : 'pointer-events-none invisible'}`}>
               <ProfileScreen navigate={navigate} />
+            </div>
+            <div className={`absolute inset-0 overflow-y-auto ${screen === 'deposit' ? 'z-10' : 'pointer-events-none invisible'}`}>
+              <DepositScreen navigate={navigate} onBack={() => navigate('profile')} />
             </div>
           </div>
           <BottomNav screen={screen} navigate={navigate} />

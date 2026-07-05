@@ -1,0 +1,543 @@
+/* global L, google */
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const params = new URLSearchParams(location.search);
+const lat = parseFloat(params.get('lat'));
+const lng = parseFloat(params.get('lng'));
+const bot = params.get('bot') || '';
+const gmapsKey = params.get('gmaps_key') || '';
+
+const statusEl = document.getElementById('status');
+const cardEl = document.getElementById('card');
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+const searchDropdown = document.getElementById('searchDropdown');
+const searchContainer = document.getElementById('search-container');
+const myLocationBtn = document.getElementById('myLocationBtn');
+const mapTypeBtn = document.getElementById('mapTypeBtn');
+const mapTypeMenu = document.getElementById('mapTypeMenu');
+const mapTypeContainer = document.getElementById('mapTypeContainer');
+
+function setStatus(msg) {
+  if (msg) { statusEl.textContent = msg; statusEl.style.display = 'block'; }
+  else { statusEl.style.display = 'none'; }
+}
+
+// Never leave a blank "Loading map…" screen on a script error — surface the real
+// reason so it's debuggable on the phone instead of a silent white page.
+window.addEventListener('error', (e) => {
+  setStatus('Map error: ' + (e.message || e.error || 'failed to load'));
+});
+if (typeof L === 'undefined') {
+  setStatus('Map library failed to load. Check your connection and reopen.');
+}
+
+// Track whether Google Maps API has loaded
+let googleMapsLoaded = false;
+let googleMapsLoading = false;
+
+function loadGoogleMaps() {
+  if (googleMapsLoaded || googleMapsLoading || !gmapsKey) return;
+  googleMapsLoading = true;
+  const script = document.createElement('script');
+  // Directions Service is part of the core Maps JS API — no extra library needed.
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + gmapsKey + '&v=weekly';
+  script.async = true;
+  script.defer = true;
+  script.onload = function () {
+    googleMapsLoaded = true;
+    googleMapsLoading = false;
+  };
+  script.onerror = function () {
+    googleMapsLoading = false;
+    console.warn('Google Maps API failed to load — OSRM fallback will be used');
+  };
+  document.head.appendChild(script);
+}
+
+function fmtDist(m) {
+  if (m == null) return '';
+  return m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m';
+}
+function stars(avg, count) {
+  return count ? '⭐ ' + Number(avg).toFixed(1) + ' (' + count + ')' : 'No ratings yet';
+}
+function directionsUrl(la, ln) {
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + la + ',' + ln;
+}
+
+// Declared before the call below — startMap() assigns `map`, so the binding must
+// be initialised first (otherwise it's a temporal-dead-zone ReferenceError).
+let map;
+let routeLayer = null;
+let routeMarkers = [];   // start/end markers for the active route
+let currentTileLayer = null;
+let baseLayers = {};
+let currentMapType = 'map';
+let allSpots = [];
+let markers = [];
+
+if (!isFinite(lat) || !isFinite(lng)) {
+  setStatus('Location missing. Open this from the bot after sharing your location.');
+} else {
+  startMap();
+}
+
+function startMap() {
+  map = L.map('map', { 
+    zoomControl: false,
+    attributionControl: true 
+  }).setView([lat, lng], 15);
+  
+  // Add zoom control to top-right
+  L.control.zoom({ position: 'topright' }).addTo(map);
+  
+  // Define multiple tile layers (like Google Maps)
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap',
+  });
+  
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: '© Esri',
+  });
+  
+  const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: '© OpenTopoMap',
+  });
+  
+  const streetsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '© CARTO',
+  });
+  
+  // Default to OSM
+  osmLayer.addTo(map);
+  currentTileLayer = osmLayer;
+  
+  // Base layers for control
+  baseLayers = {
+    '🗺️ Map': osmLayer,
+    '🛰️ Satellite': satelliteLayer,
+    '⛰️ Terrain': terrainLayer,
+    ' Streets': streetsLayer,
+  };
+  
+  // Add layer control (top-left)
+  L.control.layers(baseLayers, null, { 
+    position: 'topleft',
+    collapsed: true 
+  }).addTo(map);
+  
+  // Handle tile loading errors
+  currentTileLayer.on('tileerror', function(error) {
+    console.warn('Tile loading error:', error);
+  });
+
+  const meIcon = L.divIcon({ className: 'me-icon', html: '<div class="me-dot"></div>', iconSize: [20, 20] });
+  L.marker([lat, lng], { icon: meIcon }).addTo(map).bindPopup('You are here');
+
+  // My location button
+  myLocationBtn.addEventListener('click', function () {
+    map.setView([lat, lng], 16);
+    setStatus('Centered on your location');
+    setTimeout(function () { setStatus(null); }, 2000);
+  });
+
+  // Load Google Maps API for Directions routing (fallback to OSRM if unavailable)
+  loadGoogleMaps();
+
+  // Map type toggle functionality - Google Maps style dropdown
+  mapTypeBtn.addEventListener('click', () => {
+    mapTypeMenu.classList.toggle('hidden');
+  });
+
+  // Close menu when clicking outside — handled in the unified document click above
+
+  // Handle map type selection
+  document.querySelectorAll('.map-type-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+      const type = e.currentTarget.dataset.type;
+      
+      // Update active state
+      document.querySelectorAll('.map-type-option').forEach(opt => opt.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      
+      // Switch tile layer
+      map.removeLayer(currentTileLayer);
+      
+      switch(type) {
+        case 'satellite':
+          baseLayers['🛰️ Satellite'].addTo(map);
+          currentTileLayer = baseLayers['🛰️ Satellite'];
+          break;
+        case 'terrain':
+          baseLayers['⛰️ Terrain'].addTo(map);
+          currentTileLayer = baseLayers['⛰️ Terrain'];
+          break;
+        default:
+          baseLayers['🗺️ Map'].addTo(map);
+          currentTileLayer = baseLayers['🗺️ Map'];
+      }
+      
+      currentMapType = type;
+      mapTypeMenu.classList.add('hidden');
+    });
+  });
+
+  // Set initial active state
+  document.querySelector('.map-type-option[data-type="map"]').classList.add('active');
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  searchInput.addEventListener('focus', () => {
+    searchContainer.classList.add('focused');
+    if (searchInput.value.trim()) showDropdown(searchInput.value.trim());
+  });
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    searchClear.classList.toggle('hidden', q.length === 0);
+    if (q.length === 0) {
+      hideDropdown();
+      renderAllMarkers();
+    } else {
+      showDropdown(q);
+    }
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.classList.add('hidden');
+    hideDropdown();
+    searchInput.focus();
+    renderAllMarkers();
+  });
+
+  // Tap outside → close dropdown
+  document.addEventListener('click', (e) => {
+    if (!searchContainer.contains(e.target)) {
+      hideDropdown();
+      searchContainer.classList.remove('focused');
+    }
+    if (!mapTypeContainer.contains(e.target)) {
+      mapTypeMenu.classList.add('hidden');
+    }
+  });
+
+  // Telegram webviews often report the final viewport size only after the app
+  // has rendered, leaving Leaflet with a 0-height canvas (a white screen). Nudge
+  // it to re-measure once things settle and whenever Telegram resizes us.
+  // Pass {reset:true} so Leaflet redraws tiles for the actual (larger) canvas.
+  const fix = () => map.invalidateSize({ reset: true });
+  setTimeout(fix, 200);
+  setTimeout(fix, 600);
+  setTimeout(fix, 1200);
+  if (tg && tg.onEvent) tg.onEvent('viewportChanged', fix);
+
+  loadSpots();
+}
+
+function priceIcon(price) {
+  const priceText = price ? price.toString() : '';
+  return L.divIcon({
+    html: `<svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 28 16 28s16-16 16-28C32 7.2 24.8 0 16 0z" fill="#ea4335" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="8" fill="#fff"/>
+      <text x="16" y="20" font-size="10" font-weight="bold" fill="#ea4335" text-anchor="middle">${priceText}</text>
+    </svg>`,
+    className: '',
+    iconSize: [32, 44],
+    iconAnchor: [16, 44],
+    popupAnchor: [0, -44],
+  });
+}
+
+function showCard(s) {
+  cardEl.innerHTML =
+    '<div class="card-head">' +
+    '<div class="card-title">' + (s.address || 'Parking spot') + '</div>' +
+    '<button class="card-close" id="cardClose"></button></div>' +
+    '<div class="card-price">' + s.price_per_hour + ' ETB/hr</div>' +
+    '<div class="card-meta">' + fmtDist(s.distance_m) +
+    ' · ' + stars(s.rating_avg, s.rating_count) + '</div>' +
+    '<div class="card-actions">' +
+    '<button class="btn btn-primary" id="btnBook">📅 Book Now</button>' +
+    '<button class="btn" id="btnDir"> Directions</button></div>';
+  cardEl.classList.remove('hidden');
+  document.getElementById('cardClose').onclick = () => cardEl.classList.add('hidden');
+  document.getElementById('btnBook').onclick = () => bookSpot(s);
+  document.getElementById('btnDir').onclick = () => showDirections(s);
+}
+
+function bookSpot(s) {
+  const url = 'https://t.me/' + bot + '?start=book_' + s.id;
+  if (tg && tg.openTelegramLink) { tg.openTelegramLink(url); tg.close(); }
+  else { window.open(url, '_blank'); }
+}
+
+// Clear any existing route polyline and markers from the map
+function clearRoute() {
+  if (routeLayer) {
+    map.removeLayer(routeLayer);
+    routeLayer = null;
+  }
+  routeMarkers.forEach(function (m) {
+    map.removeLayer(m);
+  });
+  routeMarkers = [];
+}
+
+// Helper to draw route polyline + markers on the map and update the card
+function displayRoute(coords, distanceKm, durationMin, s) {
+  clearRoute();
+
+  routeLayer = L.polyline(coords, { 
+    color: '#2563eb', 
+    weight: 6, 
+    opacity: 0.9,
+    lineJoin: 'round'
+  }).addTo(map);
+
+  const startIcon = L.divIcon({
+    className: 'route-marker',
+    html: '<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+
+  const endIcon = L.divIcon({
+    className: 'route-marker',
+    html: '<div style="background:#ef4444;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+
+  const startMarker = L.marker([lat, lng], { icon: startIcon }).addTo(map).bindPopup('Start');
+  const endMarker = L.marker([s.lat, s.lng], { icon: endIcon }).addTo(map).bindPopup('Destination');
+  routeMarkers = [startMarker, endMarker];
+
+  // Fit map to show entire route
+  map.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 16 });
+
+  // Show route info
+  const dist = distanceKm.toFixed(1);
+  const dur = Math.round(durationMin);
+  setStatus(dist + ' km · ' + dur + ' min');
+
+  // Update card with route info
+  const cardMeta = cardEl.querySelector('.card-meta');
+  if (cardMeta) {
+    cardMeta.innerHTML = '🚗 ' + dist + ' km · ' + dur + ' min · ' + stars(s.rating_avg, s.rating_count);
+  }
+
+  // Add "Open in Google Maps" button
+  const cardActions = cardEl.querySelector('.card-actions');
+  if (cardActions && !cardActions.querySelector('.gmaps-btn')) {
+    const gmapsBtn = document.createElement('button');
+    gmapsBtn.className = 'btn gmaps-btn';
+    gmapsBtn.innerHTML = '🌐 Google Maps';
+    gmapsBtn.onclick = function () {
+      const gmaps = directionsUrl(s.lat, s.lng);
+      if (tg && tg.openLink) tg.openLink(gmaps);
+      else window.open(gmaps, '_blank');
+    };
+    cardActions.appendChild(gmapsBtn);
+  }
+
+  setTimeout(function () { setStatus(null); }, 5000);
+}
+
+// Show directions: try Google Maps Directions API, fall back to OSRM
+async function showDirections(s) {
+  // Clear existing route
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+
+  setStatus('Calculating route...');
+
+  // Try Google Maps Directions Service first
+  if (googleMapsLoaded && typeof google !== 'undefined' && google.maps && google.maps.DirectionsService) {
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      const request = {
+        origin: { lat: lat, lng: lng },
+        destination: { lat: s.lat, lng: s.lng },
+        travelMode: 'DRIVING',
+      };
+
+      directionsService.route(request, function (result, status) {
+        if (status === 'OK' && result.routes && result.routes[0]) {
+          var route = result.routes[0];
+          var leg = route.legs[0];
+
+          // Build polyline coords from the overview path
+          var coords = [];
+          if (route.overview_path && route.overview_path.length) {
+            for (var i = 0; i < route.overview_path.length; i++) {
+              coords.push([route.overview_path[i].lat(), route.overview_path[i].lng()]);
+            }
+          } else {
+            coords.push([lat, lng], [s.lat, s.lng]);
+          }
+
+          var distKm = leg.distance ? leg.distance.value / 1000 : 0;
+          var durMin = leg.duration ? leg.duration.value / 60 : 0;
+
+          displayRoute(coords, distKm, durMin, s);
+        } else {
+          console.warn('Google Maps Directions failed:', status);
+          setStatus('Could not calculate route');
+          setTimeout(function () { setStatus(null); }, 3000);
+        }
+      });
+      return;
+    } catch (e) {
+      console.warn('Google Maps Directions error, falling back to OSRM:', e);
+    }
+  }
+
+  // Fallback: OSRM public demo server
+  try {
+    var u = 'https://router.project-osrm.org/route/v1/driving/' +
+      lng + ',' + lat + ';' + s.lng + ',' + s.lat + '?overview=full&geometries=geojson&steps=true';
+    var r = await fetch(u);
+    var d = await r.json();
+
+    if (d.routes && d.routes[0]) {
+      var route = d.routes[0];
+      var coords = route.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+      displayRoute(coords, route.distance / 1000, route.duration / 60, s);
+    } else {
+      setStatus('Could not calculate route');
+      setTimeout(function () { setStatus(null); }, 3000);
+    }
+  } catch (e) {
+    console.error('Route error:', e);
+    setStatus('Route calculation failed');
+    setTimeout(function () { setStatus(null); }, 3000);
+  }
+}
+
+// ── Search helpers ────────────────────────────────────────────────────────
+
+function matchSpots(query) {
+  const q = query.toLowerCase();
+  return allSpots.filter(s => (s.address || '').toLowerCase().includes(q));
+}
+
+function showDropdown(query) {
+  searchContainer.classList.add('focused');
+  const matches = matchSpots(query);
+  searchDropdown.classList.remove('hidden');
+  searchDropdown.innerHTML = '';
+
+  if (matches.length === 0) {
+    searchDropdown.innerHTML = '<div class="search-no-results">No parking spots found</div>';
+    return;
+  }
+
+  matches.slice(0, 6).forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'search-suggestion';
+    const dist = s.distance_m != null ? fmtDist(s.distance_m) : '';
+    el.innerHTML = `
+      <div class="suggestion-pin">
+        <svg viewBox="0 0 24 24" width="16" height="16">
+          <path fill="#ea4335" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+      <div class="suggestion-body">
+        <div class="suggestion-address">${highlight(s.address || 'Parking spot', query)}</div>
+        <div class="suggestion-meta">${dist}${dist ? ' · ' : ''}Parking</div>
+      </div>
+      <div class="suggestion-price">${s.price_per_hour} ETB/hr</div>`;
+
+    el.addEventListener('click', () => {
+      searchInput.value = s.address || '';
+      searchClear.classList.remove('hidden');
+      hideDropdown();
+      searchContainer.classList.remove('focused');
+      selectSpot(s);
+    });
+
+    searchDropdown.appendChild(el);
+  });
+}
+
+function hideDropdown() {
+  searchDropdown.classList.add('hidden');
+  searchDropdown.innerHTML = '';
+  searchContainer.classList.remove('focused');
+}
+
+// Wrap matched text in <strong> for highlighting
+function highlight(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return text.slice(0, idx) +
+    '<strong>' + text.slice(idx, idx + query.length) + '</strong>' +
+    text.slice(idx + query.length);
+}
+
+// Fly to a spot, highlight its marker, open its card
+function selectSpot(s) {
+  map.setView([s.lat, s.lng], 17, { animate: true });
+  const marker = markers.find(m => m._spotId === s.id);
+  if (marker) {
+    marker.openPopup();
+  }
+  showCard(s);
+}
+
+// Render all spots back (clear search)
+function renderAllMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  if (!allSpots.length) return;
+  const bounds = [[lat, lng]];
+  allSpots.forEach(s => {
+    if (!s.lat || !s.lng) return;
+    const marker = L.marker([s.lat, s.lng], { icon: priceIcon(s.price_per_hour) }).addTo(map);
+    marker._spotId = s.id;
+    marker.on('click', () => showCard(s));
+    markers.push(marker);
+    bounds.push([s.lat, s.lng]);
+  });
+  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+}
+
+async function loadSpots() {
+  try {
+    setStatus('Loading spots...');
+    const r = await fetch('/api/spots/nearby?lat=' + lat + '&lng=' + lng, {
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+    });
+    const d = await r.json();
+
+    // API wraps response in { success, data: { fallback, spots } }
+    const payload = d.data || d;
+
+    if (!payload.spots || !payload.spots.length) {
+      setStatus('No parking spots found nearby.');
+      return;
+    }
+
+    allSpots = payload.spots;
+    setStatus(null);
+    renderAllMarkers();
+
+    if (payload.fallback) {
+      setStatus('Showing nearest spots (none within range)');
+      setTimeout(() => setStatus(null), 3000);
+    } else {
+      setStatus('Tap a pin to view details');
+      setTimeout(() => setStatus(null), 3000);
+    }
+  } catch (e) {
+    console.error('Failed to load spots:', e);
+    setStatus('Could not load spots. Check your connection.');
+  }
+}

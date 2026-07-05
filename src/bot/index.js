@@ -1,0 +1,80 @@
+import { Bot } from 'grammy';
+import { config, assertBotConfig } from '../config/index.js';
+import { logger } from '../utils/logger.js';
+import { userMiddleware } from './middlewares/user.js';
+import { registerStart } from './handlers/start.js';
+import { registerLanguage } from './handlers/language.js';
+import { registerNearby } from './handlers/nearby.js';
+import { registerBooking } from './handlers/booking.js';
+import { registerBookingsList } from './handlers/bookingsList.js';
+import { registerHost, hostFlowMiddleware } from './handlers/host.js';
+import { registerCheckin } from './handlers/checkin.js';
+import { registerPayment } from './handlers/payment.js';
+import { registerRating } from './handlers/rating.js';
+import { registerFavorites } from './handlers/favorites.js';
+import { registerBookingModification } from './handlers/bookingModification.js';
+import { registerVehicles } from './handlers/vehicles.js';
+import { registerDisputes } from './handlers/disputes.js';
+import { registerHelp } from './help.js';
+import { registerSupport, supportFlowMiddleware } from './handlers/support.js';
+import { botAnalyticsMiddleware } from './analytics.js';
+
+// Create the bot instance with all handlers.
+// Returns the bot object (caller decides whether to use polling or webhook).
+export function createBot() {
+  assertBotConfig();
+  const bot = new Bot(config.botToken);
+
+  // Trace incoming updates (helps diagnose "nothing happens"). Logs the update
+  // kind + a short payload preview, then passes control on.
+  bot.use(async (ctx, next) => {
+    const u = ctx.update;
+    const kind = u.message
+      ? u.message.location
+        ? 'message:location'
+        : u.message.text
+          ? `message:text "${u.message.text.slice(0, 40)}"`
+          : 'message:other'
+      : u.callback_query
+        ? `callback "${u.callback_query.data}"`
+        : Object.keys(u).filter((k) => k !== 'update_id')[0] || 'unknown';
+    logger.info('update', { from: ctx.from?.id, kind });
+    await next();
+  });
+
+  // Every update: load/refresh the user and attach ctx.t + ctx.dbUser.
+  bot.use(userMiddleware());
+  bot.use(botAnalyticsMiddleware());
+
+  // Intercepts messages while a user is mid-wizard (listing a spot / editing a
+  // price / submitting a ticket) so step input isn't mistaken for a menu action.
+  bot.use(hostFlowMiddleware());
+  bot.use(supportFlowMiddleware());
+
+  // Order matters: specific commands/callbacks before generic hears().
+  registerStart(bot);
+  registerLanguage(bot);
+  registerNearby(bot);
+  registerBooking(bot);
+  registerPayment(bot); // Payment handlers (must be before bookingsList)
+  registerBookingsList(bot);
+  registerHost(bot); // also handles help + cancel hears()
+  registerCheckin(bot);
+  registerRating(bot);
+  registerFavorites(bot);
+  registerBookingModification(bot);
+  registerVehicles(bot);
+  registerDisputes(bot);
+  registerHelp(bot); // Interactive help menu with category navigation
+  registerSupport(bot); // Support ticket submission flow
+
+  // Global error boundary so one bad update can't crash the long-poller.
+  bot.catch((err) => {
+    logger.error('bot error', {
+      update_id: err.ctx?.update?.update_id,
+      error: err.error?.message || String(err.error),
+    });
+  });
+
+  return bot;
+}

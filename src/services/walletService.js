@@ -1,6 +1,8 @@
 import * as playersRepo from '../db/repositories/players.js';
 import * as transactionsRepo from '../db/repositories/transactions.js';
+import * as settingsRepo from '../db/repositories/settings.js';
 import { initializePayment, verifyPayment } from './chapaService.js';
+import { creditReferralOnFirstDeposit } from './rewardsService.js';
 import { query, withTransaction } from '../db/index.js';
 import { generateTxRef } from '../utils/code.js';
 import { config } from '../config/index.js';
@@ -19,6 +21,26 @@ export async function initiateDeposit({ playerId, amount, returnUrl, callbackUrl
 
   const player = await playersRepo.getById(playerId);
   if (!player) throw new Error('PLAYER_NOT_FOUND');
+
+  // Development / no Chapa configured: credit the wallet directly (static deposit)
+  // so testers can add funds without a real payment. Production uses Chapa below.
+  if (config.env === 'development' || !config.chapa?.secretKey) {
+    return creditDepositDirectly({ playerId, amount, player });
+  }
+
+  // Idempotency: reuse a recent identical pending deposit instead of opening a
+  // second Chapa session when the user double-taps.
+  const { rows: recent } = await query(
+    `SELECT * FROM transactions
+     WHERE player_id = $1 AND type = 'deposit' AND status = 'pending'
+       AND amount = $2 AND chapa_checkout_url IS NOT NULL
+       AND created_at > now() - interval '2 minutes'
+     ORDER BY created_at DESC LIMIT 1`,
+    [playerId, Number(amount)]
+  );
+  if (recent.length) {
+    return { transaction: recent[0], checkoutUrl: recent[0].chapa_checkout_url };
+  }
 
   const chapaResult = await initializePayment({
     amount: Number(amount),
@@ -44,6 +66,29 @@ export async function initiateDeposit({ playerId, amount, returnUrl, callbackUrl
   });
 
   return { transaction: tx, checkoutUrl: chapaResult.checkout_url };
+}
+
+// Credit a deposit straight to the wallet (development / no-Chapa mode).
+async function creditDepositDirectly({ playerId, amount, player }) {
+  return withTransaction(async (client) => {
+    const balanceBefore = Number(player.wallet_balance);
+    const { rows } = await client.query(
+      `UPDATE players SET wallet_balance = wallet_balance + $2 WHERE id = $1 RETURNING wallet_balance`,
+      [playerId, amount]
+    );
+    const balance = Number(rows[0].wallet_balance);
+    const ref = 'DEV-' + Date.now().toString(36).toUpperCase();
+    const { rows: txRows } = await client.query(
+      `INSERT INTO transactions (player_id, type, amount, balance_before, balance_after, reference, status, notes)
+       VALUES ($1, 'deposit', $2, $3, $4, $5, 'completed', 'Development deposit')
+       RETURNING *`,
+      [playerId, Number(amount), balanceBefore, balance, ref]
+    );
+    // Referral bonus fires on the referred player's first deposit here too.
+    await creditReferralOnFirstDeposit(client, playerId);
+    logger.info('Dev deposit credited', { playerId, amount, balance });
+    return { transaction: txRows[0], balance, credited: true };
+  });
 }
 
 // Confirm a deposit after Chapa payment
@@ -84,6 +129,10 @@ export async function confirmDeposit(chapaTxRef) {
         [tx.id, ref]
       );
 
+      // Credit the referrer on this player's first successful deposit
+      // (idempotent: guarded by players.referral_rewarded).
+      await creditReferralOnFirstDeposit(client, tx.player_id);
+
       const updatedTx = await transactionsRepo.getById(tx.id);
       return { transaction: updatedTx, player };
     });
@@ -99,11 +148,9 @@ export async function confirmDeposit(chapaTxRef) {
 
 // Request a withdrawal
 export async function requestWithdrawal(playerId, amount) {
-  if (amount <= 0) throw new Error('INVALID_AMOUNT');
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('INVALID_AMOUNT');
 
-  const { rows } = await query('SELECT min_withdrawal FROM settings WHERE key = $1', ['min_withdrawal']);
-  const minWithdrawal = Number(rows[0]?.value || 50);
-
+  const minWithdrawal = await settingsRepo.getNumber('min_withdrawal', 50);
   if (amount < minWithdrawal) throw new Error('WITHDRAWAL_MINIMUM');
 
   const player = await playersRepo.getById(playerId);

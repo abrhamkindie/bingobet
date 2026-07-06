@@ -1,93 +1,115 @@
-# ParkAddis — Telegram parking bot (Ethiopia)
+# BetBingo — Telegram lottery & bingo Mini App (Ethiopia)
 
-Find and book parking spots in Addis Ababa over Telegram. Lightweight by
-design (works from inline buttons without opening the Mini App), bilingual
-(English / አማርኛ), and built for slow/unstable connections.
+A Telegram bot + Mini App where players deposit ETB, buy lottery/bingo tickets,
+watch live number draws, and win prizes. Bilingual bot (English / አማርኛ),
+Chapa payments (Telebirr / CBE Birr / Card), and a tap-to-earn styled Mini App.
 
 ## Tech stack
 
 - **Backend:** Node.js + Express
 - **Bot:** [grammY](https://grammy.dev)
-- **DB:** PostgreSQL + PostGIS (geo radius search)
-- **Payments:** Chapa + manual transfer fallback _(added in a later step)_
-- **Mini App:** HTML/JS + Telegram WebApp SDK + Leaflet/OSM _(later step)_
-- **Admin dashboard:** React + Tailwind _(later step)_
+- **DB:** PostgreSQL 14+
+- **Payments:** Chapa (with manual withdrawal payout)
+- **Mini App:** React + Vite + Tailwind + Telegram WebApp SDK
+- **Admin dashboard:** React + Tailwind
 
 ## Project layout
 
 ```
-migrations/        SQL schema (001), functions (002), dev seed (003)
-scripts/           migrate.js · seed.js · verify-core.js
+migrations/        SQL schema (001), functions (002), seed (003),
+                   mini app features — daily/referrals (004)
+scripts/           migrate.js · seed.js
 src/
-  config/          env loading + validation
-  db/              pg pool, transactions, repositories/
-  i18n/            translator + locales/{en,am}.json   (no hardcoded text)
-  services/        pricing, bookingService (business logic)
-  bot/             grammY bot: handlers/ keyboards views/ middlewares/
-  utils/           logger, code, geo, format
-  server.js        Express (health/ready now; admin API later)
+  config/          env loading + validation (zod)
+  db/              pg pool + repositories/
+  i18n/            bot translator + locales/{en,am}.json
+  services/        gameService · walletService · chapaService ·
+                   rewardsService (daily reward, referrals, leaderboard)
+  routes/          miniapp.routes.js · admin/* · auth · public
+  middlewares/     telegramAuth (HMAC initData) · errorHandler · validate
+  bot/             grammY bot: handlers/ keyboards
+  miniapp/         React Mini App (see below)
+  admin/           React admin dashboard
+  server.js        Express app
   index.js         entrypoint — starts bot + server
 ```
 
+## Mini App (`src/miniapp/`) — "Gold Coin" theme
+
+A tap-to-earn styled interface over the lottery product.
+
+- **Screens:** Home (coin hero, daily reward, live games), Games (list + detail
+  with prize tiers), Live Draw (animated coin balls, past results), Tickets
+  (filters + detail sheet), Deposit, Withdraw, Referrals, Leaderboard, Profile.
+- **Design system:** `components/ui/` primitives (Button, Card, Coin, NumberBall,
+  ProgressMeter, Sheet, SegmentedTabs, ScreenShell, states) + `hooks/`
+  (`useResource`, `useTelegram`, `useOnline`, `usePolling`, `useCountdown`).
+- **Resilience:** ErrorBoundary, offline banner, auth/reconnect screen, typed
+  `ApiError` with timeout + network detection, uniform loading/empty/error states,
+  Telegram haptics + BackButton.
+
+### Games
+
+- **Lottery / Bingo** — buy tickets → scheduled live draw → prizes
+- **Keno** — pick up to 8 numbers, 10 are drawn instantly, payout by matches
+- **Spin Wheel** — stake and spin a weighted wheel for an instant multiplier
+
+Keno & Spin are instant house games settled atomically against the wallet, with
+server-side RNG and admin-tunable paytable / segments / stake limits in `settings`.
+See `migrations/005_instant_games.sql` and `services/instantGamesService.js`.
+
+### Wallet & rewards
+
+- Buy tickets → live draw → prizes (existing lottery engine)
+- **Deposit** via Chapa; **Withdraw** (manual payout, min from `settings`)
+- **Daily reward + streak** — claim ETB once per UTC day, streak bonus (capped)
+- **Referrals** — share `t.me/<bot>?start=ref_<code>`; referrer earns a bonus on
+  the invitee's first deposit
+- **Leaderboard** — top winners (all-time / this week) with your own rank
+
 ## Getting started
 
-Requires Node ≥ 20 and Docker (for PostGIS).
+Requires Node ≥ 20 and Docker (for PostgreSQL).
 
 ```bash
-cp .env.example .env          # then set BOT_TOKEN from @BotFather
+cp .env.example .env          # set BOT_TOKEN, BOT_USERNAME, DATABASE_URL, JWT_SECRET, CHAPA_*
 npm install
 
-npm run db:up                 # start PostGIS  (needs docker access; see note)
-npm run db:migrate            # apply schema + functions
-npm run db:seed               # sample Addis Ababa spots
+npm run db:up                 # start PostgreSQL
+npm run db:migrate            # apply schema + functions + mini app features
+npm run db:seed               # sample games
 
-npm start                     # boots Express + bot (long polling)
+npm start                     # builds admin + mini app, boots Express + bot
 ```
-
-> **Docker note:** if `docker` needs sudo on your machine, either
-> `sudo usermod -aG docker $USER` (then re-login) or run the compose command
-> with sudo. The DB is published on host port **5433** (host 5432 is often
-> taken by a native Postgres) — `DATABASE_URL` already points there.
 
 Health checks: `GET /health` and `GET /ready` (the latter pings the DB).
 
-### Verify the core works
+### Local Mini App auth
+
+In `development`, the Mini App API accepts an `X-Telegram-User-Id` header instead
+of signed Telegram `initData`, so you can test in a plain browser:
 
 ```bash
-node scripts/verify-core.js
+curl -H "X-Telegram-User-Id: 900000001" localhost:3000/api/miniapp/player
 ```
 
-Exercises the PostGIS nearby search, an atomic reservation, and the
-capacity-based double-booking guard.
+In production, requests must carry Telegram `initData` (HMAC-verified against the
+bot token, with `auth_date` freshness).
 
-## What works today (build steps 1–2)
+## Scripts
 
-- `/start` → language selection (EN/AM), persisted per user
-- "Find parking" → share location → PostGIS radius search → results as inline
-  buttons, sorted by distance then price
-- Spot detail → pick start time → duration → summary → **reserve**
-  (atomic, capacity-aware, no double-booking) → confirmation code
-- Host gets a Telegram notification on each reservation
-- "My bookings" list
-
-> No payment yet — confirming a booking just **reserves** the spot. Payment
-> (Chapa + manual fallback) is the next build step.
-
-## Roadmap (build order)
-
-1. ✅ PostgreSQL schema + PostGIS
-2. ✅ Bot core: language, location, nearby search, reserve flow
-3. ⏳ Host onboarding + admin approval
-4. ⏳ Chapa payment integration + manual fallback
-5. ⏳ Mini App map UI (Leaflet/OSM)
-6. ⏳ Admin dashboard (React): approvals, bookings map, revenue, payouts
-7. ⏳ Cron jobs: booking expiry + rating prompt, reminders
+```
+npm run dev            # watch build + node --watch
+npm run miniapp:build  # build the Mini App only
+npm run admin:build    # build the admin dashboard only
+npm test               # vitest
+npm run db:reset       # drop, migrate, seed
+```
 
 ## Configuration
 
-All runtime config is in `.env` (see `.env.example`). Commission % is stored in
-the `settings` table (key `commission_percent`) so it can change without a
-redeploy; it falls back to `DEFAULT_COMMISSION_PERCENT`.
-
-All user-facing text lives in `src/i18n/locales/*.json` — never hardcoded.
+Runtime config is in `.env` (see `.env.example`). Tunable business values live in
+the `settings` table (JSONB), e.g. `min_withdrawal`, `daily_reward_base`,
+`daily_streak_bonus`, `daily_streak_max`, `referral_bonus_amount`,
+`platform_fee_percent` — changeable without a redeploy.
 ```

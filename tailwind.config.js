@@ -49,6 +49,28 @@ export default {
         'accent-emerald': '#10b981',
         'accent-amber': '#f59e0b',
         'accent-rose': '#ef4444',
+        // ── Mini app "Gold Coin" theme (tap-to-earn) ───────────────
+        coin: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+        },
+        // Dark teal-green surfaces (crypto-tap template)
+        night: {
+          950: '#07110e',
+          900: '#0b1714',
+          850: '#0f1d19',
+          800: '#13241f',
+          700: '#193029',
+          600: '#1f3b32',
+        },
       },
       animation: {
         'toast-in': 'toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -88,6 +110,16 @@ export default {
         'focus-ring': '0 0 0 3px rgba(79, 70, 229, 0.25)',
         'sidebar': '4px 0 20px rgba(0, 0, 0, 0.06)',
         'elevated': '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+        // ── Mini app coin glows / 3D press ──────────────────────────
+        'coin': '0 0 24px rgba(251, 191, 36, 0.35)',
+        'coin-sm': '0 0 14px rgba(251, 191, 36, 0.25)',
+        'coin-lg': '0 0 44px rgba(251, 191, 36, 0.45)',
+        'press': '0 4px 0 0 #b45309, 0 6px 12px rgba(0, 0, 0, 0.35)',
+        'press-active': '0 1px 0 0 #b45309, 0 2px 6px rgba(0, 0, 0, 0.3)',
+        // Teal accent glows (crypto-tap template)
+        'teal': '0 0 24px rgba(45, 212, 191, 0.4)',
+        'teal-sm': '0 0 14px rgba(45, 212, 191, 0.3)',
+        'teal-lg': '0 0 50px rgba(45, 212, 191, 0.5)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

@@ -1,212 +1,231 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState } from 'react';
+import { Gamepad2, Ticket, Trophy, Sparkles, Target, DollarSign, Grid3x3, Disc3, ChevronRight, ChevronDown } from 'lucide-react';
 import * as api from '../api.js';
-import { ToastContext } from '../App.jsx';
-import { Gamepad2, Ticket, Trophy, ArrowLeft, RefreshCw, ShoppingCart, Sparkles, DollarSign, Target, ChevronRight, TrendingUp } from 'lucide-react';
-
-function SkeletonCard() {
-  return (
-    <div className="animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="h-5 w-36 rounded-lg bg-white/[0.08]" />
-          <div className="mt-2 flex gap-3">
-            <div className="h-4 w-16 rounded-lg bg-white/[0.05]" />
-            <div className="h-4 w-20 rounded-lg bg-white/[0.05]" />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="h-8 w-16 rounded-lg bg-white/[0.08]" />
-          <div className="h-8 w-16 rounded-lg bg-white/[0.08]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProgressBar({ current, max }) {
-  const pct = max > 0 ? Math.min((current / max) * 100, 100) : 0;
-  return (
-    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 animate-progress" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
+import { useResource } from '../hooks/useResource.js';
+import { fmtETB } from '../i18n.js';
+import ScreenShell from '../components/ui/ScreenShell.jsx';
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import Badge from '../components/ui/Badge.jsx';
+import ProgressMeter from '../components/ui/ProgressMeter.jsx';
+import { SkeletonCard, EmptyState, ErrorState } from '../components/ui/states.jsx';
+import GameCard from '../components/GameCard.jsx';
+import BuyConfirmSheet from '../components/BuyConfirmSheet.jsx';
 
 export default function GamesScreen({ navigate }) {
-  const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, loading, error, refreshing, reload } = useResource(() => api.getGames({ limit: 50 }), []);
   const [selected, setSelected] = useState(null);
-  const [buying, setBuying] = useState(null);
-  const { addToast } = useContext(ToastContext);
+  const [buyGame, setBuyGame] = useState(null);
 
-  const loadGames = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const data = await api.getGames({ limit: 50 });
-      setGames(data.games || []);
-    } catch (err) { setError(err.message || 'Failed to load games'); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadGames(); }, [loadGames]);
-
-  const handleBuy = async (gameId) => {
-    setBuying(gameId);
-    try {
-      await api.buyTicket(gameId);
-      addToast('Ticket purchased!', 'success');
-      setSelected(null);
-      navigate('tickets');
-    } catch (err) {
-      addToast(err.message === 'INSUFFICIENT_BALANCE' ? 'Insufficient balance. Deposit first.'
-        : err.message === 'GAME_SOLD_OUT' ? 'Sold out!'
-        : err.message || 'Failed', 'error');
-    } finally { setBuying(null); }
-  };
+  const games = data?.games || [];
 
   if (selected) {
-    const game = selected;
-    const tiers = game.prize_tiers || [];
-    const pct = game.max_tickets > 0 ? Math.round((game.tickets_sold / game.max_tickets) * 100) : 0;
-
     return (
-      <div className="min-h-full bg-gradient-dark px-4 pb-6 pt-4">
-        <button onClick={() => setSelected(null)}
-          className="group mb-4 flex items-center gap-1.5 text-sm font-medium text-slate-400 transition-all hover:text-cyan-300">
-          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
-          Back to Games
-        </button>
-
-        <div className="animate-scale-in overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur">
-          <div className="relative bg-gradient-to-br from-cyan-600/20 to-cyan-800/10 px-5 pb-5 pt-6">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/10 shadow-[0_0_14px_rgba(34,211,238,0.12)]">
-                <Trophy size={22} className="text-cyan-300" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">{game.title}</h2>
-                <p className="mt-0.5 text-sm text-slate-400">{game.description}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 p-5">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400"><DollarSign size={12} /> Price</div>
-              <p className="mt-1 text-lg font-bold text-white">{game.ticket_price} <span className="text-sm font-medium text-cyan-300">ETB</span></p>
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400"><Ticket size={12} /> Sold</div>
-              <p className="mt-1 text-lg font-bold text-white">{game.tickets_sold}<span className="text-sm font-medium text-slate-400">/{game.max_tickets}</span></p>
-              <ProgressBar current={game.tickets_sold} max={game.max_tickets} />
-              <p className="mt-0.5 text-[10px] text-slate-500">{pct}% filled</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400"><Sparkles size={12} /> Pool</div>
-              <p className="mt-1 text-lg font-bold text-emerald-300">{game.prize_pool.toFixed(0)} <span className="text-sm font-medium text-emerald-300/70">ETB</span></p>
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400"><Target size={12} /> Numbers</div>
-              <p className="mt-1 text-lg font-bold text-white">{game.number_min}-{game.number_max}</p>
-            </div>
-          </div>
-
-          {tiers.length > 0 && (
-            <div className="border-t border-white/[0.06] px-5 pb-5 pt-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Prize Tiers</p>
-              <div className="space-y-1.5">
-                {tiers.map((tier, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.02] px-3.5 py-2.5 transition-all hover:border-cyan-300/10 hover:bg-cyan-400/[0.03]" style={{ animationDelay: `${i * 50}ms` }}>
-                    <span className="text-sm text-slate-300">Match {tier.match}</span>
-                    <span className="text-sm font-bold text-cyan-300">
-                      {tier.is_jackpot ? <span className="inline-flex items-center gap-1"><Sparkles size={14} /> JACKPOT</span> : `${tier.payout_multiplier}x`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {(game.status === 'active' || game.status === 'upcoming') && (
-            <div className="border-t border-white/[0.06] px-5 pb-5 pt-4">
-              <button onClick={() => handleBuy(game.id)} disabled={buying === game.id}
-                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 py-3.5 text-sm font-bold text-white shadow-[0_0_20px_rgba(34,211,238,0.2)] transition-all duration-200 hover:from-cyan-500 hover:to-cyan-400 hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] active:scale-[0.98] disabled:opacity-60">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <span className="relative inline-flex items-center gap-2">
-                  {buying === game.id ? (
-                    <><RefreshCw size={16} className="animate-spin" /> Buying...</>
-                  ) : (
-                    <><ShoppingCart size={16} /> Buy Ticket — {game.ticket_price} ETB</>
-                  )}
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <GameDetail
+        game={selected}
+        onBack={() => setSelected(null)}
+        onBuy={() => setBuyGame(selected)}
+        buySheet={
+          <BuyConfirmSheet
+            game={buyGame}
+            open={!!buyGame}
+            onClose={() => setBuyGame(null)}
+            onPurchased={() => { setSelected(null); navigate('tickets'); }}
+            navigate={navigate}
+          />
+        }
+      />
     );
   }
 
   return (
-    <div className="min-h-full bg-gradient-dark px-4 pb-6 pt-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white/90">
-          <span className="inline-flex items-center gap-1.5">
-            <Gamepad2 size={18} className="text-cyan-300" /> Games
-          </span>
-          {!loading && games.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-300">{games.length}</span>
-          )}
-        </h2>
-        <button onClick={loadGames} disabled={loading}
-          className="flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] font-medium text-slate-400 transition-all hover:border-cyan-300/20 hover:text-cyan-300 active:scale-95 disabled:opacity-50">
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+    <ScreenShell title="Games" Icon={Gamepad2} onRefresh={() => reload(true)} refreshing={refreshing}>
+      {/* Instant game modes */}
+      <div className="mb-5 grid grid-cols-2 gap-3">
+        <ModeTile
+          Icon={Disc3}
+          title="Spin Wheel"
+          subtitle="Instant · up to 50×"
+          tone="teal"
+          onClick={() => navigate('spin')}
+        />
+        <ModeTile
+          Icon={Grid3x3}
+          title="Keno"
+          subtitle="Pick & match"
+          tone="coin"
+          onClick={() => navigate('keno')}
+        />
       </div>
 
+      <div className="mb-1 flex items-center gap-2">
+        <Ticket size={15} className="text-teal-300" />
+        <h3 className="text-sm font-black text-white">Lottery Draws</h3>
+        {!loading && games.length > 0 && (
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-300">{games.length}</span>
+        )}
+      </div>
+      <p className="mb-3 text-xs leading-4 text-slate-400">
+        Buy a ticket to get 6 random numbers entered into the draw. Match the drawn numbers to win from the prize pool.
+      </p>
+
       {loading ? (
-        <div className="space-y-3">{[1, 2, 3].map(i => <SkeletonCard key={i} />)}</div>
+        <div className="space-y-3">{[1, 2, 3].map((i) => <SkeletonCard key={i} />)}</div>
       ) : error ? (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center backdrop-blur">
-          <p className="text-sm text-red-300">{error}</p>
-          <button onClick={loadGames} className="mt-3 rounded-xl bg-white/10 px-4 py-2 text-xs font-medium text-white backdrop-blur hover:bg-white/20 active:scale-95">Try Again</button>
-        </div>
+        <ErrorState error={error} onRetry={reload} />
       ) : games.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center backdrop-blur">
-          <Gamepad2 size={36} className="mx-auto mb-3 text-slate-500" />
-          <p className="text-sm font-medium text-slate-400">No games available</p>
-        </div>
+        <EmptyState Icon={Gamepad2} title="No games available" text="Check back soon for new games." />
       ) : (
         <div className="space-y-3">
-          {games.map((game, index) => (
-            <div key={game.id} className="group animate-slide-up rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-all duration-200 hover:border-cyan-300/20 hover:bg-white/[0.07]" style={{ animationDelay: `${index * 60}ms` }}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white truncate">{game.title}</h3>
-                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
-                    <span className="inline-flex items-center gap-1"><DollarSign size={10} /> {game.ticket_price} ETB</span>
-                    <span className="inline-flex items-center gap-1"><TrendingUp size={10} /> {game.tickets_sold}/{game.max_tickets}</span>
-                    <span className="text-emerald-300/70">{Number(game.prize_pool).toFixed(0)} ETB</span>
-                  </div>
-                  <ProgressBar current={game.tickets_sold} max={game.max_tickets} />
-                </div>
-                <div className="ml-3 shrink-0 flex gap-2">
-                  <button onClick={() => setSelected(game)}
-                    className="rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 backdrop-blur transition-all hover:border-white/20 hover:bg-white/10 active:scale-95">View</button>
-                  {(game.status === 'active' || game.status === 'upcoming') && (
-                    <button onClick={() => handleBuy(game.id)} disabled={buying === game.id}
-                      className="rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_0_10px_rgba(34,211,238,0.15)] transition-all hover:from-cyan-500 hover:to-cyan-400 hover:shadow-[0_0_16px_rgba(34,211,238,0.3)] active:scale-95 disabled:opacity-60">
-                      {buying === game.id ? '...' : 'Buy'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+          {games.map((game, i) => (
+            <GameCard key={game.id} game={game} index={i} onView={setSelected} onBuy={setBuyGame} />
           ))}
         </div>
       )}
+
+      <BuyConfirmSheet
+        game={buyGame}
+        open={!!buyGame}
+        onClose={() => setBuyGame(null)}
+        onPurchased={() => navigate('tickets')}
+        navigate={navigate}
+      />
+    </ScreenShell>
+  );
+}
+
+function GameDetail({ game, onBack, onBuy, buySheet }) {
+  const tiers = game.prize_tiers || [];
+  const pct = game.max_tickets > 0 ? Math.round((game.tickets_sold / game.max_tickets) * 100) : 0;
+  const soldOut = game.tickets_sold >= game.max_tickets;
+  const buyable = (game.status === 'active' || game.status === 'upcoming') && !soldOut;
+
+  return (
+    <ScreenShell title={game.title} onBack={onBack}>
+      <Card className="animate-scale-in">
+        <div className="relative bg-gradient-to-br from-coin-500/20 to-amber-800/10 px-5 pb-5 pt-6">
+          <span className="shine-sweep" />
+          <div className="relative flex items-center gap-3">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl border border-coin-300/20 bg-coin-500/15 text-coin-200 shadow-coin-sm">
+              <Trophy size={24} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xl font-black text-white">{game.title}</h2>
+              {game.description && <p className="mt-0.5 text-sm text-slate-400">{game.description}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 p-5">
+          <Metric Icon={DollarSign} label="Price" value={`${fmtETB(game.ticket_price)} ETB`} />
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <Ticket size={12} /> Sold
+            </div>
+            <p className="mt-1 text-lg font-black text-white">
+              {game.tickets_sold}<span className="text-sm font-bold text-slate-400">/{game.max_tickets}</span>
+            </p>
+            <ProgressMeter current={game.tickets_sold} max={game.max_tickets} className="mt-2" />
+            <p className="mt-1 text-[10px] text-slate-500">{pct}% filled</p>
+          </div>
+          <Metric Icon={Sparkles} label="Prize pool" value={`${fmtETB(game.prize_pool)} ETB`} tone="emerald" />
+          <Metric Icon={Target} label="Numbers" value={`${game.number_min}–${game.number_max}`} />
+        </div>
+
+        {tiers.length > 0 && (
+          <div className="border-t border-white/[0.06] px-5 pb-5 pt-4">
+            <p className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Prize Tiers</p>
+            <div className="space-y-1.5">
+              {tiers.map((tier, i) => (
+                <div key={i} className="flex items-center justify-between rounded-2xl border border-white/[0.05] bg-white/[0.02] px-4 py-2.5">
+                  <span className="text-sm text-slate-300">{tier.label || `Match ${tier.match}`}</span>
+                  <span className="text-sm font-black text-coin-300">
+                    {tier.is_jackpot ? (
+                      <Badge tone="coin" Icon={Sparkles} glow>Jackpot</Badge>
+                    ) : `${tier.payout_multiplier}×`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Buy button — placed BEFORE How it works so it's always visible */}
+      {buyable ? (
+        <div className="mt-4">
+          <Button block size="lg" onClick={onBuy} variant="gold">
+            <Ticket size={18} /> Buy Ticket — {fmtETB(game.ticket_price)} ETB
+          </Button>
+          <p className="mt-1.5 text-center text-[11px] text-slate-500">
+            You'll get {game.numbers_per_ticket} random numbers · Max {game.max_tickets_per_player} per player
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 text-center">
+          <Badge tone={soldOut ? 'red' : 'neutral'}>{soldOut ? 'Sold out' : `Status: ${game.status}`}</Badge>
+        </div>
+      )}
+
+      {/* How it works */}
+      <details className="mt-4 group">
+        <summary className="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 transition hover:border-white/20 hover:text-slate-300">
+          <span className="inline-flex items-center gap-1.5">
+            <span>How it works</span>
+            <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+          </span>
+        </summary>
+        <div className="mt-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <ol className="space-y-2.5">
+            {[
+              `Buy a ticket for ${fmtETB(game.ticket_price)} ETB — you get ${game.numbers_per_ticket} random numbers.`,
+              `At the draw, ${game.numbers_to_draw} numbers are picked from ${game.number_min}–${game.number_max}.`,
+              'Match enough numbers and you win a share of the prize pool.',
+              'Watch it unfold live on the Live tab; results land in My Tickets.',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-500/15 text-[11px] font-black text-teal-300">{i + 1}</span>
+                <span className="text-sm leading-5 text-slate-300">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </details>
+
+      {buySheet}
+    </ScreenShell>
+  );
+}
+
+function ModeTile({ Icon, title, subtitle, tone = 'teal', onClick }) {
+  const grad = tone === 'coin'
+    ? 'from-coin-500/20 to-amber-700/10 border-coin-400/25'
+    : 'from-teal-500/20 to-cyan-700/10 border-teal-400/25';
+  const iconTone = tone === 'coin' ? 'text-coin-200 bg-coin-500/15' : 'text-teal-200 bg-teal-500/15';
+  return (
+    <button
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br p-4 text-left transition active:scale-[0.98] ${grad}`}
+    >
+      <span className="shine-sweep" />
+      <div className="relative">
+        <div className={`mb-3 grid h-11 w-11 place-items-center rounded-2xl ${iconTone}`}>
+          <Icon size={22} />
+        </div>
+        <p className="flex items-center gap-1 text-sm font-black text-white">{title} <ChevronRight size={14} className="text-white/50" /></p>
+        <p className="text-[11px] text-slate-300/80">{subtitle}</p>
+      </div>
+    </button>
+  );
+}
+
+function Metric({ Icon, label, value, tone = 'default' }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <Icon size={12} /> {label}
+      </div>
+      <p className={`mt-1 text-lg font-black ${tone === 'emerald' ? 'text-emerald-300' : 'text-white'}`}>{value}</p>
     </div>
   );
 }

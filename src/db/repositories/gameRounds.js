@@ -108,12 +108,15 @@ export async function getScheduledDrawsDue() {
 export async function getCompletedWithStats({ limit = 20, offset = 0 } = {}) {
   const { rows } = await query(
     `SELECT gr.*,
-            array_agg(dn.number ORDER BY dn.position) AS drawn_numbers
+            COALESCE(
+              array_agg(dn.number ORDER BY dn.position) FILTER (WHERE dn.number IS NOT NULL),
+              '{}'
+            ) AS drawn_numbers
      FROM game_rounds gr
      LEFT JOIN drawn_numbers dn ON dn.game_round_id = gr.id
      WHERE gr.status = 'completed'
      GROUP BY gr.id
-     ORDER BY gr.drawn_at DESC
+     ORDER BY gr.drawn_at DESC NULLS LAST
      LIMIT $1 OFFSET $2`,
     [limit, offset]
   );

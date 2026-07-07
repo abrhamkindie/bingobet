@@ -7,10 +7,6 @@ import { useTelegram } from '../hooks/useTelegram.js';
 import { fmtETB, errorMessage } from '../i18n.js';
 import { Skeleton } from './ui/states.jsx';
 
-/**
- * Daily reward + streak claim card. Compact by default (Home); shows the 7-day
- * streak strip when `expanded`.
- */
 export default function DailyRewardCard({ expanded = false }) {
   const { reload, patchPlayer } = useContext(PlayerContext);
   const { addToast } = useContext(ToastContext);
@@ -19,7 +15,7 @@ export default function DailyRewardCard({ expanded = false }) {
   const [claiming, setClaiming] = useState(false);
 
   if (loading) return <Skeleton className="h-24 w-full" />;
-  if (error || !data) return null; // silently hide on failure; not critical
+  if (error || !data) return null;
 
   const { canClaim, streak = 0, rewardPreview = 0, nextClaimAt } = data;
 
@@ -67,11 +63,13 @@ export default function DailyRewardCard({ expanded = false }) {
         <button
           onClick={handleClaim}
           disabled={!canClaim || claiming}
-          className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
-            canClaim ? 'btn-coin text-amber-950' : 'border border-white/10 bg-white/5 text-slate-400'
+          className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-black transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:saturate-50 disabled:brightness-85 ${
+            canClaim
+              ? 'bg-gradient-to-b from-coin-300 via-coin-500 to-coin-600 text-amber-950 shadow-[0_4px_0_0_#b45309,0_8px_18px_rgba(180,83,9,0.45)] active:translate-y-[3px] active:shadow-[0_1px_0_0_#b45309,0_3px_8px_rgba(180,83,9,0.4)]'
+              : 'border border-white/10 bg-white/5 text-slate-400'
           }`}
         >
-          {canClaim ? (claiming ? '…' : 'Claim') : <Check size={16} className="text-emerald-300" />}
+          {canClaim ? (claiming ? '\u2026' : 'Claim') : <Check size={16} className="text-emerald-300" />}
         </button>
       </div>
 

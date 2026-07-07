@@ -22,14 +22,14 @@ export default function LeaderboardScreen({ onBack }) {
   return (
     <ScreenShell title="Leaderboard" subtitle="Top winners" Icon={BarChart3} onBack={onBack}>
       <SegmentedTabs
-        className="mb-4"
+        className="mb-4 animate-slide-up"
         value={period}
         onChange={setPeriod}
         items={[{ key: 'all', label: 'All Time' }, { key: 'week', label: 'This Week' }]}
       />
 
       {loading ? (
-        <Spinner label="Loading rankings…" />
+        <Spinner label="Loading rankings\u2026" />
       ) : error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : rows.length === 0 ? (
@@ -37,7 +37,7 @@ export default function LeaderboardScreen({ onBack }) {
       ) : (
         <>
           {/* Podium */}
-          <div className="mb-4 flex items-end justify-center gap-3">
+          <div className="mb-4 flex items-end justify-center gap-3 animate-slide-up">
             {[1, 0, 2].map((slot) => {
               const p = top3[slot];
               if (!p) return <div key={slot} className="w-24" />;
@@ -45,9 +45,9 @@ export default function LeaderboardScreen({ onBack }) {
               return (
                 <div key={slot} className={`flex flex-1 flex-col items-center ${isFirst ? '-mt-2' : ''}`}>
                   <div className="relative">
-                    {isFirst && <Crown size={20} className="absolute -top-5 left-1/2 -translate-x-1/2 text-coin-300" />}
+                    {isFirst && <Crown size={20} className="absolute -top-5 left-1/2 -translate-x-1/2 text-coin-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />}
                     <div
-                      className="grid place-items-center rounded-full font-black text-amber-950"
+                      className="grid place-items-center rounded-full font-black text-amber-950 transition-all duration-200 hover:scale-105"
                       style={{
                         width: isFirst ? 68 : 56,
                         height: isFirst ? 68 : 56,
@@ -80,8 +80,8 @@ export default function LeaderboardScreen({ onBack }) {
 
           {/* You */}
           {me && (
-            <div className="sticky bottom-24 mt-4">
-              <div className="rounded-2xl border border-coin-400/30 bg-coin-500/15 p-1 shadow-coin-sm backdrop-blur">
+            <div className="sticky bottom-24 mt-4 animate-slide-up">
+              <div className="rounded-2xl border border-coin-400/30 bg-coin-500/15 p-1 shadow-[0_0_20px_rgba(251,191,36,0.12)] backdrop-blur">
                 <Row rank={me.rank} player={me} highlight />
               </div>
             </div>
@@ -94,15 +94,26 @@ export default function LeaderboardScreen({ onBack }) {
 
 function Row({ rank, player, highlight = false }) {
   return (
-    <div className={`flex items-center gap-3 rounded-2xl border p-3 ${highlight ? 'border-transparent' : 'border-white/10 bg-white/[0.04]'}`}>
-      <span className={`w-6 text-center text-sm font-black ${highlight ? 'text-coin-200' : 'text-slate-400'}`}>{rank}</span>
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/5 text-sm font-black text-coin-300">
-        {(player.name || player.username || '?').slice(0, 1).toUpperCase()}
+    <div
+      className={`group relative overflow-hidden rounded-2xl border border-white/10 p-3 transition-all duration-300 ${
+        highlight
+          ? 'border-transparent'
+          : 'bg-white/[0.04] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(45,212,191,0.12)] hover:border-teal-400/40'
+      }`}
+    >
+      {/* Gradient accent bar — left edge */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-400 via-teal-500 to-emerald-500 rounded-l-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+
+      <div className="relative flex items-center gap-3 pl-2.5">
+        <span className={`w-6 text-center text-sm font-black ${highlight ? 'text-coin-200' : 'text-slate-400'}`}>{rank}</span>
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/5 text-sm font-black text-coin-300">
+          {(player.name || player.username || '?').slice(0, 1).toUpperCase()}
+        </div>
+        <p className={`min-w-0 flex-1 truncate text-sm font-bold transition-colors duration-300 ${highlight ? 'text-white' : 'text-slate-200 group-hover:text-teal-100'}`}>
+          {highlight ? 'You' : (player.name || player.username || 'Player')}
+        </p>
+        <span className="text-sm font-black text-emerald-300">{fmtETB(player.total_won)} ETB</span>
       </div>
-      <p className={`min-w-0 flex-1 truncate text-sm font-bold ${highlight ? 'text-white' : 'text-slate-200'}`}>
-        {highlight ? 'You' : (player.name || player.username || 'Player')}
-      </p>
-      <span className="text-sm font-black text-emerald-300">{fmtETB(player.total_won)} ETB</span>
     </div>
   );
 }

@@ -74,7 +74,6 @@ export default function App() {
     });
   }, [screen]);
 
-  // Locally patch the player (e.g. after deposit/withdraw/buy) without a full reload.
   const patchPlayer = useCallback((patch) => {
     setPlayer((p) => (p ? { ...p, ...patch } : p));
   }, []);
@@ -108,21 +107,31 @@ export default function App() {
 
   useEffect(() => { loadPlayer(); }, [loadPlayer]);
 
-  // ── Loading splash ──
   if (loading) {
     return (
-      <div className="coin-bg flex h-full flex-col items-center justify-center gap-5">
+      <div
+        className="isolate flex h-full flex-col items-center justify-center gap-5"
+        style={{
+          background:
+            'radial-gradient(circle at 50% -4%, rgba(45, 212, 191, 0.16), transparent 36%), radial-gradient(circle at 86% 14%, rgba(34, 211, 238, 0.12), transparent 34%), radial-gradient(circle at 8% 70%, rgba(251, 191, 36, 0.08), transparent 32%), linear-gradient(180deg, #0c1a16 0%, #091512 48%, #07110e 100%)',
+        }}
+      >
         <Coin size={72} floating>₿</Coin>
         <p className="text-sm font-black tracking-wide text-white">{t.appName}</p>
       </div>
     );
   }
 
-  // ── Auth / connection failure ──
   if (authError) {
     const offline = authError.code === 'NETWORK' || authError.code === 'TIMEOUT';
     return (
-      <div className="coin-bg flex h-full flex-col items-center justify-center px-8 text-center">
+      <div
+        className="isolate flex h-full flex-col items-center justify-center px-8 text-center"
+        style={{
+          background:
+            'radial-gradient(circle at 50% -4%, rgba(45, 212, 191, 0.16), transparent 36%), radial-gradient(circle at 86% 14%, rgba(34, 211, 238, 0.12), transparent 34%), radial-gradient(circle at 8% 70%, rgba(251, 191, 36, 0.08), transparent 32%), linear-gradient(180deg, #0c1a16 0%, #091512 48%, #07110e 100%)',
+        }}
+      >
         <div className="grid h-16 w-16 place-items-center rounded-2xl border border-white/10 bg-white/5">
           <WifiOff size={30} className="text-coin-300" />
         </div>
@@ -134,7 +143,7 @@ export default function App() {
         </p>
         <button
           onClick={loadPlayer}
-          className="btn-coin mt-6 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-amber-950"
+          className="bg-gradient-to-b from-coin-300 via-coin-500 to-coin-600 mt-6 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-amber-950 shadow-[0_4px_0_0_#b45309,0_8px_18px_rgba(180,83,9,0.45)] active:translate-y-[3px] active:shadow-[0_1px_0_0_#b45309,0_3px_8px_rgba(180,83,9,0.4)] transition-all duration-150"
         >
           <RotateCw size={16} /> {t.reconnect}
         </button>
@@ -155,7 +164,6 @@ export default function App() {
           )}
 
           <div className="relative min-h-0 flex-1">
-            {/* Main tab screens kept mounted to preserve scroll/state */}
             <Layer active={screen === 'home'}>
               <TopBar player={player} navigate={navigate} />
               <HomeScreen navigate={navigate} />
@@ -177,7 +185,6 @@ export default function App() {
               <ProfileScreen navigate={navigate} />
             </Layer>
 
-            {/* Secondary stacked screens (mounted only when active) */}
             {screen === 'deposit' && (
               <Layer active><DepositScreen onBack={goBack} /></Layer>
             )}

@@ -32,7 +32,7 @@ export default function ProfileScreen({ navigate }) {
     { key: 'referrals', label: 'Invite Friends', Icon: Users, desc: 'Earn bonus for every friend', nav: 'referrals' },
     { key: 'leaderboard', label: 'Leaderboard', Icon: BarChart3, desc: 'Top winners this week', nav: 'leaderboard' },
     { key: 'transactions', label: 'Transactions', Icon: History, desc: 'Deposits, buys & winnings' },
-    { key: 'language', label: 'Language', Icon: Languages, desc: player?.language_pref === 'am' ? 'አማርኛ' : 'English' },
+    { key: 'language', label: 'Language', Icon: Languages, desc: player?.language_pref === 'am' ? '\u12a0\u121b\u122d\u129b' : 'English' },
     { key: 'help', label: 'Help & Support', Icon: HelpCircle, desc: 'How to play & get help' },
   ];
 
@@ -64,7 +64,10 @@ export default function ProfileScreen({ navigate }) {
             <p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
               <Wallet size={12} /> Wallet balance
             </p>
-            <p className="mt-1 text-3xl font-black text-white text-glow-gold">
+            <p
+              className="mt-1 text-3xl font-black text-white"
+              style={{ textShadow: '0 0 12px rgba(251, 191, 36, 0.55), 0 0 28px rgba(245, 158, 11, 0.3)' }}
+            >
               {fmtETB(player?.wallet_balance)} <span className="text-sm text-coin-300">ETB</span>
             </p>
           </div>
@@ -138,20 +141,25 @@ function TransactionsSection({ onBack }) {
               : tx.type === 'bonus' || tx.type === 'referral_bonus' ? Sparkles
               : ShoppingBag;
             return (
-              <Card key={tx.id} className="animate-slide-up flex items-center gap-3 p-3" style={{ animationDelay: `${i * 35}ms` }}>
-                <div className={`grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 ${credit ? 'text-emerald-300' : 'text-slate-400'}`}>
-                  <Icon size={15} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold capitalize text-white">{tx.type?.replace(/_/g, ' ')}</p>
-                    <span className={`text-sm font-black ${credit ? 'text-emerald-300' : 'text-rose-400'}`}>
-                      {credit ? '+' : '-'}{fmtETB(tx.amount)} ETB
-                    </span>
+              <Card key={tx.id} className="group relative overflow-hidden animate-slide-up p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(45,212,191,0.12)] hover:border-teal-400/40" style={{ animationDelay: `${i * 35}ms` }}>
+                {/* Gradient accent bar — left edge */}
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-400 via-teal-500 to-emerald-500 rounded-l-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+
+                <div className="relative flex items-center gap-3 pl-2.5">
+                  <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 ${credit ? 'text-emerald-300' : 'text-slate-400'}`}>
+                    <Icon size={15} />
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-slate-400">
-                    {tx.game_title || tx.reference || tx.status} · {new Date(tx.created_at).toLocaleDateString()}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold capitalize text-white group-hover:text-teal-100 transition-colors duration-300">{tx.type?.replace(/_/g, ' ')}</p>
+                      <span className={`text-sm font-black ${credit ? 'text-emerald-300' : 'text-rose-400'}`}>
+                        {credit ? '+' : '-'}{fmtETB(tx.amount)} ETB
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-slate-400">
+                      {tx.game_title || tx.reference || tx.status} \u00b7 {new Date(tx.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </Card>
             );
@@ -167,12 +175,12 @@ function LanguageSection({ onBack, player, reload }) {
   const current = player?.language_pref || 'en';
   const langs = [
     { key: 'en', label: 'English', desc: 'English interface' },
-    { key: 'am', label: 'አማርኛ', desc: 'Amharic interface' },
+    { key: 'am', label: '\u12a0\u121b\u122d\u129b', desc: 'Amharic interface' },
   ];
   const change = async (lang) => {
     try {
       await api.setLanguage(lang);
-      addToast(lang === 'am' ? 'ቋንቋ ተቀየረ' : 'Language changed', 'success');
+      addToast(lang === 'am' ? '\u1240\u1295\u1241 \u1270\u1095\u1218\u1228' : 'Language changed', 'success');
       reload();
     } catch { addToast('Failed to change language', 'error'); }
   };
@@ -219,10 +227,10 @@ function HelpSection({ onBack }) {
         <Card className="p-4">
           <h3 className="flex items-center gap-2 text-sm font-black text-white"><Trophy size={14} className="text-coin-300" /> Prize tiers</h3>
           <div className="mt-3 space-y-1.5 text-sm text-slate-300">
-            <p><b className="text-coin-300">Match 3</b> — 2× your ticket</p>
-            <p><b className="text-coin-300">Match 4</b> — 10× your ticket</p>
-            <p><b className="text-coin-300">Match 5</b> — 50× your ticket</p>
-            <p><b className="text-emerald-300">Match 6</b> — Jackpot!</p>
+            <p><b className="text-coin-300">Match 3</b> \u2014 2\u00d7 your ticket</p>
+            <p><b className="text-coin-300">Match 4</b> \u2014 10\u00d7 your ticket</p>
+            <p><b className="text-coin-300">Match 5</b> \u2014 50\u00d7 your ticket</p>
+            <p><b className="text-emerald-300">Match 6</b> \u2014 Jackpot!</p>
           </div>
         </Card>
         <Card className="p-4">

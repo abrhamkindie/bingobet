@@ -33,7 +33,7 @@ export default function ReferralScreen({ onBack }) {
 
   const share = () => {
     haptic('light');
-    const text = `Join me on BetBingo and win big! 🎰`;
+    const text = `Join me on BetBingo and win big! \uD83C\uDFB0`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl);
     else window.open(shareUrl, '_blank');
@@ -42,57 +42,76 @@ export default function ReferralScreen({ onBack }) {
   return (
     <ScreenShell title="Invite Friends" subtitle="Earn a bonus for every friend" Icon={Users} onBack={onBack}>
       {loading ? (
-        <Spinner label="Loading…" />
+        <Spinner label="Loading\u2026" />
       ) : error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : (
         <>
-          <div className="relative mb-4 overflow-hidden rounded-3xl border border-coin-400/20 bg-gradient-to-br from-coin-500/15 to-teal-600/[0.08] p-5 text-center">
+          {/* Hero banner */}
+          <div className="relative mb-4 overflow-hidden rounded-3xl border border-coin-400/20 bg-gradient-to-br from-coin-500/15 to-teal-600/[0.08] p-5 text-center animate-slide-up transition-all duration-200 hover:border-coin-400/30">
             <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-coin-400/15 blur-2xl" />
-            <Coin size={64} floating className="mx-auto">🎁</Coin>
+            <Coin size={64} floating className="mx-auto">\uD83C\uDF81</Coin>
             <h3 className="mt-3 text-lg font-black text-white">Give {fmtETB(data?.bonusAmount || 0)}, Get {fmtETB(data?.bonusAmount || 0)} ETB</h3>
             <p className="mt-1 text-sm text-slate-400">
               You earn a bonus when a friend joins with your link and makes their first deposit.
             </p>
           </div>
 
-          <div className="mb-4 grid grid-cols-2 gap-2.5">
-            <StatTile label="Invited" value={data?.count ?? 0} Icon={UserPlus} />
-            <StatTile label="Earned" value={`${fmtETB(data?.earned)} ETB`} tone="emerald" Icon={Gift} />
+          {/* Stats */}
+          <div className="mb-4 grid grid-cols-2 gap-2.5 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <StatTile label="Invited" value={data?.count ?? 0} Icon={UserPlus} className="transition hover:border-white/20" />
+            <StatTile label="Earned" value={`${fmtETB(data?.earned)} ETB`} tone="emerald" Icon={Gift} className="transition hover:border-emerald-400/30" />
           </div>
 
-          <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">Your invite code</p>
+          {/* Invite code */}
+          <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400 animate-slide-up" style={{ animationDelay: '150ms' }}>Your invite code</p>
           <button
             onClick={copy}
-            className="mb-3 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition active:scale-[0.99]"
+            className="mb-3 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all duration-200 active:scale-[0.99] hover:border-coin-400/25 hover:bg-coin-500/[0.04]"
           >
-            <span className="font-mono text-lg font-black tracking-widest text-coin-300">{code || '—'}</span>
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400">
-              {copied ? <><Check size={14} className="text-emerald-300" /> Copied</> : <><Copy size={14} /> Copy</>}
+            <span className="font-mono text-lg font-black tracking-widest text-coin-300">{code || '\u2014'}</span>
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 transition-all duration-200">
+              {copied ? (
+                <><Check size={14} className="text-emerald-300" /> Copied</>
+              ) : (
+                <><Copy size={14} className="group-hover:text-coin-300" /> Copy</>
+              )}
             </span>
           </button>
 
-          <Button block size="lg" onClick={share} disabled={!link}>
-            <Send size={17} /> Share on Telegram
-          </Button>
+          <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <Button block size="lg" onClick={share} disabled={!link}>
+              <Send size={17} /> Share on Telegram
+            </Button>
+          </div>
 
-          <p className="mb-2 mt-6 text-xs font-black uppercase tracking-wider text-slate-400">Your invitees</p>
+          {/* Invitees list */}
+          <p className="mb-2 mt-6 text-xs font-black uppercase tracking-wider text-slate-400 animate-slide-up" style={{ animationDelay: '250ms' }}>Your invitees</p>
           {(!data?.invitees || data.invitees.length === 0) ? (
             <EmptyState Icon={Users} title="No invitees yet" text="Share your link to start earning." />
           ) : (
             <div className="space-y-2">
               {data.invitees.map((inv, i) => (
-                <Card key={inv.id ?? i} className="animate-slide-up flex items-center gap-3 p-3" style={{ animationDelay: `${i * 40}ms` }}>
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/5 text-coin-300 text-sm font-black">
-                    {(inv.name || inv.username || '?').slice(0, 1).toUpperCase()}
+                <Card
+                  key={inv.id ?? i}
+                  className="group relative overflow-hidden animate-slide-up p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(45,212,191,0.12)] hover:border-teal-400/40"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  {/* Gradient accent bar — left edge */}
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-400 via-teal-500 to-emerald-500 rounded-l-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="relative flex items-center gap-3 pl-2.5">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/5 text-coin-300 text-sm font-black">
+                      {(inv.name || inv.username || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white group-hover:text-teal-100 transition-colors duration-300">{inv.name || inv.username || 'Player'}</p>
+                      <p className="text-xs text-slate-400">{new Date(inv.created_at).toLocaleDateString()}</p>
+                    </div>
+                    {inv.rewarded
+                      ? <span className="shrink-0 text-xs font-bold text-emerald-300">+{fmtETB(data.bonusAmount)} ETB</span>
+                      : <span className="shrink-0 text-[10px] font-bold uppercase text-slate-500">Pending</span>}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-white">{inv.name || inv.username || 'Player'}</p>
-                    <p className="text-xs text-slate-400">{new Date(inv.created_at).toLocaleDateString()}</p>
-                  </div>
-                  {inv.rewarded
-                    ? <span className="text-xs font-bold text-emerald-300">+{fmtETB(data.bonusAmount)} ETB</span>
-                    : <span className="text-[10px] font-bold uppercase text-slate-500">Pending</span>}
                 </Card>
               ))}
             </div>

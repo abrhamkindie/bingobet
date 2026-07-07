@@ -16,6 +16,7 @@ import ReferralScreen from './screens/ReferralScreen.jsx';
 import LeaderboardScreen from './screens/LeaderboardScreen.jsx';
 import KenoScreen from './screens/KenoScreen.jsx';
 import SpinScreen from './screens/SpinScreen.jsx';
+import RouletteScreen from './screens/RouletteScreen.jsx';
 
 import TopBar from './components/TopBar.jsx';
 import BottomNav from './components/BottomNav.jsx';
@@ -36,6 +37,7 @@ const SECONDARY = {
   leaderboard: 'home',
   keno: 'games',
   spin: 'games',
+  roulette: 'games',
 };
 
 export default function App() {
@@ -193,6 +195,9 @@ export default function App() {
             )}
             {screen === 'spin' && (
               <Layer active><SpinScreen onBack={goBack} /></Layer>
+            )}
+            {screen === 'roulette' && (
+              <Layer active><RouletteScreen onBack={goBack} /></Layer>
             )}
           </div>
 

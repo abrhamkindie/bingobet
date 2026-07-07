@@ -16,7 +16,7 @@ export default function BottomNav({ screen, navigate }) {
   const isActive = (key) =>
     screen === key ||
     (key === 'profile' && ['deposit', 'withdraw', 'referrals'].includes(screen)) ||
-    (key === 'games' && ['keno', 'spin', 'leaderboard'].includes(screen));
+    (key === 'games' && ['keno', 'spin', 'roulette', 'leaderboard'].includes(screen));
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(env(safe-area-inset-bottom),0.5rem)]">

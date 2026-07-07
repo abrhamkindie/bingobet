@@ -94,9 +94,13 @@ export const getCompletedGames = () => request('/games/completed/list');
 
 // ── Instant games (Keno + Spin) ─────────────────────────
 export const getInstantConfig = () => request('/games/instant/config');
-export const getInstantHistory = () => request('/games/instant/history');
+export const getInstantHistory = (gameType) => request('/games/instant/history', { params: gameType ? { game_type: gameType } : undefined });
 export const playKeno = (stake, picks) => request('/games/keno/play', { method: 'POST', body: { stake, picks } });
 export const playSpin = (stake) => request('/games/spin/play', { method: 'POST', body: { stake } });
+
+// ── Roulette ────────────────────────────────────────────
+export const getRouletteBetTypes = () => request('/games/roulette/bet-types');
+export const playRoulette = (bets, stakePerBet) => request('/games/roulette/play', { method: 'POST', body: { bets, stakePerBet } });
 
 // ── Tickets ─────────────────────────────────────────────
 export const getTickets = (params) => request('/tickets', { params });

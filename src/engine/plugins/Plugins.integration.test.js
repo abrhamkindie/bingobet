@@ -187,7 +187,7 @@ describe('KenoPlugin', () => {
         .toThrow('Pick at least one number');
     });
 
-    it('throws for duplicate picks', () => {
+    it('throws for duplicate picks (different duplicates)', () => {
       expect(() => plugin.validate(1, { stake: 50, picks: [1, 2, 2, 3] }))
         .toThrow('Duplicate numbers');
     });

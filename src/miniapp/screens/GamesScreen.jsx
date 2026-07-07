@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gamepad2, Ticket, Trophy, Sparkles, Target, DollarSign, Grid3x3, Disc3, ChevronRight, ChevronDown } from 'lucide-react';
+import { Gamepad2, Ticket, Trophy, Sparkles, Target, DollarSign, Grid3x3, Disc3, Cherry, ChevronRight, ChevronDown } from 'lucide-react';
 import * as api from '../api.js';
 import { useResource } from '../hooks/useResource.js';
 import { fmtETB } from '../i18n.js';
@@ -55,6 +55,13 @@ export default function GamesScreen({ navigate }) {
           subtitle="Pick & match"
           tone="coin"
           onClick={() => navigate('keno')}
+        />
+        <ModeTile
+          Icon={Cherry}
+          title="Roulette"
+          subtitle="Spin · 37 numbers · Multiple bets"
+          tone="violet"
+          onClick={() => navigate('roulette')}
         />
       </div>
 
@@ -200,8 +207,10 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
 function ModeTile({ Icon, title, subtitle, tone = 'teal', onClick }) {
   const grad = tone === 'coin'
     ? 'from-coin-500/20 to-amber-700/10 border-coin-400/25'
+    : tone === 'violet'
+    ? 'from-violet-500/20 to-purple-700/10 border-violet-400/25'
     : 'from-teal-500/20 to-cyan-700/10 border-teal-400/25';
-  const iconTone = tone === 'coin' ? 'text-coin-200 bg-coin-500/15' : 'text-teal-200 bg-teal-500/15';
+  const iconTone = tone === 'coin' ? 'text-coin-200 bg-coin-500/15' : tone === 'violet' ? 'text-violet-200 bg-violet-500/15' : 'text-teal-200 bg-teal-500/15';
   return (
     <button
       onClick={onClick}

@@ -18,6 +18,7 @@ import { getWalletInfo, initiateDeposit, requestWithdrawal } from '../services/w
 import {
   playKeno, playSpin, getInstantConfig, getInstantHistory,
 } from '../services/instantGamesService.js';
+import { playRoulette, getAllBetTypes, getBetGroups, getSectorColors } from '../services/rouletteService.js';
 import {
   getDailyStatus, claimDaily, getReferralInfo, ensureReferralCode,
   captureReferral, getLeaderboard,
@@ -42,6 +43,10 @@ const kenoSchema = z.object({
   picks: z.array(z.coerce.number().int().positive()).min(1).max(20),
 });
 const spinSchema = z.object({ stake: z.coerce.number().positive().max(1_000_000) });
+const rouletteSchema = z.object({
+  bets: z.array(z.string()).min(1).max(60),
+  stakePerBet: z.coerce.number().positive().max(1_000_000),
+});
 
 // Tighter limiter for state-changing money/ticket actions (skipped in dev).
 const writeLimiter = rateLimit({
@@ -117,7 +122,8 @@ export function createMiniAppRouter() {
   }));
 
   router.get('/games/instant/history', asyncHandler(async (req, res) => {
-    const history = await getInstantHistory(req.dbPlayer.id);
+    const gameType = req.query.game_type || null;
+    const history = await getInstantHistory(req.dbPlayer.id, { gameType });
     success(res, history);
   }));
 
@@ -130,6 +136,20 @@ export function createMiniAppRouter() {
   router.post('/games/spin/play', writeLimiter, asyncHandler(async (req, res) => {
     const { stake } = parseBody(spinSchema, req.body);
     const result = await playSpin({ playerId: req.dbPlayer.id, stake });
+    success(res, result);
+  }));
+
+  // ── Roulette ──
+  router.get('/games/roulette/bet-types', asyncHandler(async (req, res) => {
+    const types = getAllBetTypes();
+    const groups = getBetGroups();
+    const sectorColors = getSectorColors();
+    success(res, { types, groups, sectorColors });
+  }));
+
+  router.post('/games/roulette/play', writeLimiter, asyncHandler(async (req, res) => {
+    const { bets, stakePerBet } = parseBody(rouletteSchema, req.body);
+    const result = await playRoulette({ playerId: req.dbPlayer.id, bets, stakePerBet });
     success(res, result);
   }));
 

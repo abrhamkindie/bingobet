@@ -162,12 +162,19 @@ export async function playSpin({ playerId, stake }, rng = secureRng) {
 
 // ── History ─────────────────────────────────────────────
 
-export async function getInstantHistory(playerId, { limit = 30 } = {}) {
-  const { rows } = await query(
-    `SELECT id, game_type, stake, payout, multiplier, outcome, created_at
-       FROM instant_bets WHERE player_id = $1
-      ORDER BY created_at DESC LIMIT $2`,
-    [playerId, limit]
-  );
+export async function getInstantHistory(playerId, { limit = 30, gameType } = {}) {
+  let sql, params;
+  if (gameType) {
+    sql = `SELECT id, game_type, stake, payout, multiplier, outcome, created_at
+             FROM instant_bets WHERE player_id = $1 AND game_type = $3
+            ORDER BY created_at DESC LIMIT $2`;
+    params = [playerId, limit, gameType];
+  } else {
+    sql = `SELECT id, game_type, stake, payout, multiplier, outcome, created_at
+             FROM instant_bets WHERE player_id = $1
+            ORDER BY created_at DESC LIMIT $2`;
+    params = [playerId, limit];
+  }
+  const { rows } = await query(sql, params);
   return { bets: rows };
 }

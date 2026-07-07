@@ -111,7 +111,12 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
     <ScreenShell title={game.title} onBack={onBack}>
       <Card className="animate-scale-in">
         <div className="relative bg-gradient-to-br from-coin-500/20 to-amber-800/10 px-5 pb-5 pt-6">
-          <span className="shine-sweep" />
+          <span className="absolute inset-0 overflow-hidden pointer-events-none rounded-[inherit]">
+            <span
+              className="absolute inset-y-0 w-2/5 bg-gradient-to-r from-transparent via-white/35 to-transparent animate-[shine_2.6s_ease-in-out_infinite]"
+              style={{ transform: 'translateX(-120%) skewX(-18deg)' }}
+            />
+          </span>
           <div className="relative flex items-center gap-3">
             <div className="grid h-14 w-14 place-items-center rounded-2xl border border-coin-300/20 bg-coin-500/15 text-coin-200 shadow-coin-sm">
               <Trophy size={24} />
@@ -136,7 +141,7 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
             <p className="mt-1 text-[10px] text-slate-500">{pct}% filled</p>
           </div>
           <Metric Icon={Sparkles} label="Prize pool" value={`${fmtETB(game.prize_pool)} ETB`} tone="emerald" />
-          <Metric Icon={Target} label="Numbers" value={`${game.number_min}–${game.number_max}`} />
+          <Metric Icon={Target} label="Numbers" value={`${game.number_min}\u2013${game.number_max}`} />
         </div>
 
         {tiers.length > 0 && (
@@ -149,7 +154,7 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
                   <span className="text-sm font-black text-coin-300">
                     {tier.is_jackpot ? (
                       <Badge tone="coin" Icon={Sparkles} glow>Jackpot</Badge>
-                    ) : `${tier.payout_multiplier}×`}
+                    ) : `${tier.payout_multiplier}\u00d7`}
                   </span>
                 </div>
               ))}
@@ -158,14 +163,13 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
         )}
       </Card>
 
-      {/* Buy button — placed BEFORE How it works so it's always visible */}
       {buyable ? (
         <div className="mt-4">
           <Button block size="lg" onClick={onBuy} variant="gold">
-            <Ticket size={18} /> Buy Ticket — {fmtETB(game.ticket_price)} ETB
+            <Ticket size={18} /> Buy Ticket {' \u2014 '}{fmtETB(game.ticket_price)} ETB
           </Button>
           <p className="mt-1.5 text-center text-[11px] text-slate-500">
-            You'll get {game.numbers_per_ticket} random numbers · Max {game.max_tickets_per_player} per player
+            You'll get {game.numbers_per_ticket} random numbers {' \u00b7 '}Max {game.max_tickets_per_player} per player
           </p>
         </div>
       ) : (
@@ -174,7 +178,6 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
         </div>
       )}
 
-      {/* How it works */}
       <details className="mt-4 group">
         <summary className="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 transition hover:border-white/20 hover:text-slate-300">
           <span className="inline-flex items-center gap-1.5">
@@ -185,8 +188,8 @@ function GameDetail({ game, onBack, onBuy, buySheet }) {
         <div className="mt-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
           <ol className="space-y-2.5">
             {[
-              `Buy a ticket for ${fmtETB(game.ticket_price)} ETB — you get ${game.numbers_per_ticket} random numbers.`,
-              `At the draw, ${game.numbers_to_draw} numbers are picked from ${game.number_min}–${game.number_max}.`,
+              `Buy a ticket for ${fmtETB(game.ticket_price)} ETB \u2014 you get ${game.numbers_per_ticket} random numbers.`,
+              `At the draw, ${game.numbers_to_draw} numbers are picked from ${game.number_min}\u2013${game.number_max}.`,
               'Match enough numbers and you win a share of the prize pool.',
               'Watch it unfold live on the Live tab; results land in My Tickets.',
             ].map((step, i) => (
@@ -216,7 +219,12 @@ function ModeTile({ Icon, title, subtitle, tone = 'teal', onClick }) {
       onClick={onClick}
       className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br p-4 text-left transition active:scale-[0.98] ${grad}`}
     >
-      <span className="shine-sweep" />
+      <span className="absolute inset-0 overflow-hidden pointer-events-none rounded-[inherit]">
+        <span
+          className="absolute inset-y-0 w-2/5 bg-gradient-to-r from-transparent via-white/35 to-transparent animate-[shine_2.6s_ease-in-out_infinite]"
+          style={{ transform: 'translateX(-120%) skewX(-18deg)' }}
+        />
+      </span>
       <div className="relative">
         <div className={`mb-3 grid h-11 w-11 place-items-center rounded-2xl ${iconTone}`}>
           <Icon size={22} />

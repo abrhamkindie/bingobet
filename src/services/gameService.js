@@ -15,13 +15,6 @@ function getLottery() {
   return plugin;
 }
 
-export class GameError extends Error {
-  constructor(code) {
-    super(code);
-    this.code = code;
-  }
-}
-
 // Create a new game round
 export async function createGame(gameData) {
   return getLottery().createRound(gameData);

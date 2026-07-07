@@ -1,16 +1,17 @@
 import React from 'react';
 
-/**
- * Glossy gold coin disc. Used for the Home hero and inline accents.
- * `spin` triggers a one-shot flip (e.g. on daily claim / win).
- */
 export default function Coin({ size = 64, spin = false, floating = false, children, className = '' }) {
   return (
     <div
-      className={`coin-disc relative grid place-items-center rounded-full ${floating ? 'animate-float' : ''} ${spin ? 'animate-coin-spin' : ''} ${className}`}
-      style={{ width: size, height: size }}
+      className={`relative grid place-items-center rounded-full ${floating ? 'animate-float' : ''} ${spin ? 'animate-coin-spin' : ''} ${className}`}
+      style={{
+        width: size,
+        height: size,
+        background: 'radial-gradient(circle at 35% 28%, #fef9c3 0%, #fcd34d 30%, #f59e0b 62%, #b45309 100%)',
+        boxShadow:
+          '0 0 0 3px rgba(180, 83, 9, 0.55), 0 0 0 6px rgba(251, 191, 36, 0.18), 0 10px 30px rgba(180, 83, 9, 0.45), inset 0 3px 8px rgba(255, 255, 255, 0.65), inset 0 -6px 12px rgba(146, 64, 14, 0.55)',
+      }}
     >
-      {/* inner ring */}
       <div
         className="absolute rounded-full border border-amber-200/40"
         style={{ inset: Math.max(4, size * 0.11) }}

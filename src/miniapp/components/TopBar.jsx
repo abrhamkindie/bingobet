@@ -3,20 +3,17 @@ import { Settings, Plus } from 'lucide-react';
 import { fmtETB } from '../i18n.js';
 import { useTelegram } from '../hooks/useTelegram.js';
 
-/** Cosmetic level derived from lifetime activity. */
 function levelFor(player) {
   return 1 + Math.floor((Number(player?.total_tickets_bought || 0)) / 3);
 }
 
-/** Persistent top bar: avatar + name + level (left), gold balance + settings (right). */
 export default function TopBar({ player, navigate }) {
   const { haptic } = useTelegram();
   const initials = (player?.name || player?.username || 'B').slice(0, 1).toUpperCase();
 
   return (
-    <div className="safe-top sticky top-0 z-30 px-4 pt-3">
+    <div className="sticky top-0 z-30 px-4 pt-3">
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-night-900/70 px-3 py-2 backdrop-blur-xl">
-        {/* Identity */}
         <button
           onClick={() => { haptic('light'); navigate('profile'); }}
           className="flex min-w-0 items-center gap-2.5 transition active:scale-95"
@@ -30,7 +27,6 @@ export default function TopBar({ player, navigate }) {
           </div>
         </button>
 
-        {/* Balance + settings */}
         <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={() => { haptic('light'); navigate('deposit'); }}

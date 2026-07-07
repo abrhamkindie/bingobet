@@ -2,17 +2,11 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTelegram } from '../../hooks/useTelegram.js';
 
-/**
- * Chunky, tactile button.
- *  - primary  : glossy gold 3D press (the tap-to-earn hero action)
- *  - secondary: violet raised
- *  - ghost    : outline
- *  - danger   : red
- *  - subtle   : low-emphasis text
- */
 const VARIANTS = {
-  primary: 'btn-aqua text-teal-950',
-  gold: 'btn-coin text-amber-950',
+  primary:
+    'bg-gradient-to-b from-teal-300 via-teal-400 to-teal-600 text-teal-950 shadow-[0_4px_0_0_#0f766e,0_8px_18px_rgba(13,148,136,0.45)] active:translate-y-[3px] active:shadow-[0_1px_0_0_#0f766e,0_3px_8px_rgba(13,148,136,0.4)]',
+  gold:
+    'bg-gradient-to-b from-coin-300 via-coin-500 to-coin-600 text-amber-950 shadow-[0_4px_0_0_#b45309,0_8px_18px_rgba(180,83,9,0.45)] active:translate-y-[3px] active:shadow-[0_1px_0_0_#b45309,0_3px_8px_rgba(180,83,9,0.4)]',
   secondary:
     'bg-white/[0.06] border border-white/10 text-white hover:bg-white/10 active:scale-[0.98]',
   ghost:
@@ -54,7 +48,7 @@ export default function Button({
       type={type}
       onClick={handleClick}
       disabled={disabled || loading}
-      className={`relative inline-flex items-center justify-center gap-2 font-bold tracking-tight transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${SIZES[size]} ${block ? 'w-full' : ''} ${className}`}
+      className={`relative inline-flex items-center justify-center gap-2 font-bold tracking-tight transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:saturate-50 disabled:brightness-85 ${VARIANTS[variant]} ${SIZES[size]} ${block ? 'w-full' : ''} ${className}`}
       {...rest}
     >
       {loading && <Loader2 size={16} className="animate-spin" />}

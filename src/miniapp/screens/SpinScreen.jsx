@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useRef, useState } from 'react';
-import { Disc3, Coins, Trophy } from 'lucide-react';
+import { Disc3, Coins, Trophy, Sparkles } from 'lucide-react';
 import * as api from '../api.js';
 import { PlayerContext, ToastContext } from '../App.jsx';
 import { useResource } from '../hooks/useResource.js';
@@ -10,6 +10,7 @@ import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import StakeControl from '../components/StakeControl.jsx';
 import { Spinner, ErrorState } from '../components/ui/states.jsx';
+import CelebrationOverlay from '../components/CelebrationOverlay.jsx';
 
 const SPIN_MS = 4200;
 
@@ -23,6 +24,7 @@ export default function SpinScreen({ onBack }) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const rotRef = useRef(0);
 
   const balance = Number(player?.wallet_balance || 0);
@@ -55,8 +57,14 @@ export default function SpinScreen({ onBack }) {
         setResult(res);
         patchPlayer({ wallet_balance: res.balance });
         reload();
-        if (res.win) { haptic('success'); addToast(`You won ${fmtETB(res.payout)} ETB! ${res.multiplier}×`, 'success'); }
-        else { haptic('warning'); addToast('No win — spin again!', 'info'); }
+        if (res.win) {
+          haptic('success');
+          addToast(`You won ${fmtETB(res.payout)} ETB! ${res.multiplier}×`, 'success');
+          setShowCelebration(true);
+        } else {
+          haptic('warning');
+          addToast('No win — spin again!', 'info');
+        }
         setSpinning(false);
       }, SPIN_MS);
     } catch (err) {
@@ -81,7 +89,7 @@ export default function SpinScreen({ onBack }) {
         {/* pointer */}
         <div className="absolute -top-1 z-20 h-0 w-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-coin-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
         {/* glow */}
-        <div className="glow-ring absolute inset-0 rounded-full" />
+        <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle at 50% 42%, rgba(45, 212, 191, 0.18), rgba(13, 148, 136, 0.04) 55%, transparent 70%)', boxShadow: '0 0 0 1px rgba(94, 234, 212, 0.25), inset 0 0 60px rgba(45, 212, 191, 0.18), 0 0 60px rgba(45, 212, 191, 0.22)' }} />
         {/* rotating wheel */}
         <div
           className="relative rounded-full border-4 border-white/10"
@@ -114,7 +122,7 @@ export default function SpinScreen({ onBack }) {
           })}
         </div>
         {/* hub */}
-        <div className="coin-disc absolute grid h-14 w-14 place-items-center rounded-full text-base font-black text-amber-900/80">₿</div>
+        <div className="absolute grid h-14 w-14 place-items-center rounded-full text-base font-black text-amber-900/80" style={{ background: 'radial-gradient(circle at 35% 28%, #fef9c3 0%, #fcd34d 30%, #f59e0b 62%, #b45309 100%)', boxShadow: '0 0 0 3px rgba(180, 83, 9, 0.55), 0 0 0 6px rgba(251, 191, 36, 0.18), 0 10px 30px rgba(180, 83, 9, 0.45), inset 0 3px 8px rgba(255, 255, 255, 0.65), inset 0 -6px 12px rgba(146, 64, 14, 0.55)' }}>₿</div>
       </div>
 
       {/* Result */}
@@ -182,6 +190,15 @@ export default function SpinScreen({ onBack }) {
           <Coins size={18} /> {spinning ? 'Spinning…' : `Spin — ${fmtETB(stake)} ETB`}
         </Button>
       </div>
+
+      {/* Celebration overlay on win */}
+      <CelebrationOverlay
+        show={showCelebration}
+        result={result}
+        title={`${result?.multiplier}× Win!`}
+        subtitle={result ? `Landed on ${result.multiplier}× — You won ${fmtETB(result.payout)} ETB` : ''}
+        onComplete={() => setShowCelebration(false)}
+      />
     </ScreenShell>
   );
 }

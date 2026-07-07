@@ -55,7 +55,7 @@ export default function TicketsScreen({ navigate }) {
       ) : (
         <>
           <SegmentedTabs
-            className="mb-4"
+            className="mb-4 animate-slide-up"
             value={filter}
             onChange={setFilter}
             items={[
@@ -67,7 +67,7 @@ export default function TicketsScreen({ navigate }) {
           />
 
           {stats.won > 0 && (
-            <div className="mb-3 animate-scale-in rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-center">
+            <div className="mb-3 animate-scale-in rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-center shadow-[0_0_16px_rgba(16,185,129,0.08)]">
               <p className="inline-flex items-center gap-1.5 text-xs text-emerald-200">
                 <Sparkles size={13} className="text-emerald-300" />
                 Won <span className="font-black">{fmtETB(stats.totalWon)} ETB</span> across {stats.won} ticket{stats.won > 1 ? 's' : ''}!
@@ -86,7 +86,7 @@ export default function TicketsScreen({ navigate }) {
 
           <button
             onClick={() => navigate('games')}
-            className="mt-4 w-full rounded-2xl border border-dashed border-white/12 py-3.5 text-sm font-bold text-slate-400 transition hover:border-coin-400/25 hover:text-coin-300 active:scale-[0.99]"
+            className="mt-4 w-full rounded-2xl border border-dashed border-white/12 py-3.5 text-sm font-bold text-slate-400 transition-all duration-200 hover:border-coin-400/25 hover:text-coin-300 hover:bg-coin-500/5 active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-1.5"><Plus size={15} /> Buy more tickets</span>
           </button>
@@ -100,25 +100,38 @@ export default function TicketsScreen({ navigate }) {
 
 function TicketRow({ ticket, index, onOpen }) {
   const isWinner = ticket.status === 'won';
+  const isLost = ticket.status === 'lost';
   return (
-    <Card interactive onClick={onOpen} className={`animate-slide-up p-4 ${isWinner ? 'border-emerald-500/25 bg-emerald-500/[0.05]' : ''}`} style={{ animationDelay: `${index * 40}ms` }}>
-      <div className="flex items-start justify-between gap-3">
+    <Card
+      interactive
+      onClick={onOpen}
+      className={`group animate-slide-up relative overflow-hidden p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(45,212,191,0.18)] ${
+        isWinner
+          ? 'border-emerald-500/25 bg-emerald-500/[0.05] hover:border-emerald-400/40'
+          : 'hover:border-teal-400/40'
+      }`}
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
+      {/* Gradient accent bar — left edge */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-teal-400 via-teal-500 to-emerald-500 rounded-l-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+
+      <div className="relative flex items-start justify-between gap-3 pl-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate font-black text-white">{ticket.game_title}</span>
+            <span className="truncate text-sm font-black text-white group-hover:text-teal-100 transition-colors duration-300">{ticket.game_title}</span>
             {isWinner && <Trophy size={14} className="shrink-0 text-coin-400" />}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-slate-400">
             <span className="inline-flex items-center gap-0.5 font-bold text-coin-300/90"><Hash size={11} />{ticket.position}</span>
-            <span className="text-slate-600">·</span>
-            <span className="truncate">{ticket.numbers?.join(' · ')}</span>
+            <span className="text-slate-600">\u00b7</span>
+            <span className="truncate">{ticket.numbers?.join(' \u00b7 ')}</span>
           </div>
         </div>
         <div className="shrink-0">
           {isWinner ? (
-            <Badge tone="emerald" glow>{fmtETB(ticket.prize_amount)} ETB</Badge>
+            <Badge tone="emerald" glow className="transition-transform duration-200 group-hover:scale-105">{fmtETB(ticket.prize_amount)} ETB</Badge>
           ) : (
-            <Badge tone={ticket.status === 'lost' ? 'red' : 'neutral'}>{ticket.status}</Badge>
+            <Badge tone={isLost ? 'red' : 'neutral'} className="transition-transform duration-200 group-hover:scale-105">{ticket.status}</Badge>
           )}
         </div>
       </div>

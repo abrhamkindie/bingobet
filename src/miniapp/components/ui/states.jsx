@@ -3,11 +3,17 @@ import { AlertCircle, Loader2, WifiOff } from 'lucide-react';
 import Button from './Button.jsx';
 import { errorMessage } from '../../i18n.js';
 
-/** Full-bleed centered spinner. */
 export function Spinner({ label }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="coin-disc grid h-12 w-12 place-items-center rounded-full">
+      <div
+        className="grid h-12 w-12 place-items-center rounded-full"
+        style={{
+          background: 'radial-gradient(circle at 35% 28%, #fef9c3 0%, #fcd34d 30%, #f59e0b 62%, #b45309 100%)',
+          boxShadow:
+            '0 0 0 3px rgba(180, 83, 9, 0.55), 0 0 0 6px rgba(251, 191, 36, 0.18), 0 10px 30px rgba(180, 83, 9, 0.45), inset 0 3px 8px rgba(255, 255, 255, 0.65), inset 0 -6px 12px rgba(146, 64, 14, 0.55)',
+        }}
+      >
         <Loader2 size={22} className="animate-spin text-amber-900/80" />
       </div>
       {label && <p className="mt-4 text-sm text-slate-400">{label}</p>}
@@ -15,12 +21,18 @@ export function Spinner({ label }) {
   );
 }
 
-/** Rounded shimmer block. */
 export function Skeleton({ className = '' }) {
-  return <div className={`animate-shimmer rounded-2xl bg-white/[0.05] ${className}`} />;
+  return (
+    <div
+      className={`rounded-2xl bg-white/[0.05] animate-shimmer ${className}`}
+      style={{
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)',
+        backgroundSize: '200% 100%',
+      }}
+    />
+  );
 }
 
-/** Skeleton row shaped like a game/ticket card. */
 export function SkeletonCard() {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
@@ -39,7 +51,6 @@ export function SkeletonCard() {
   );
 }
 
-/** Empty placeholder with optional CTA. */
 export function EmptyState({ Icon, title, text, action }) {
   return (
     <div className="rounded-3xl border border-dashed border-white/12 bg-white/[0.02] px-5 py-10 text-center backdrop-blur">
@@ -55,7 +66,6 @@ export function EmptyState({ Icon, title, text, action }) {
   );
 }
 
-/** Error with retry. Understands ApiError codes (offline vs server). */
 export function ErrorState({ error, onRetry, compact = false }) {
   const offline = error?.code === 'NETWORK' || error?.code === 'TIMEOUT';
   const Icon = offline ? WifiOff : AlertCircle;

@@ -7,24 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Surfaces (Professional Light) ───────────────────────────
         canvas: '#f1f5f9',
         surface: '#ffffff',
         'surface-hover': '#f8fafc',
         'surface-muted': '#f8fafc',
         'surface-input': '#ffffff',
         'surface-glass': 'rgba(255, 255, 255, 0.85)',
-        // ── Text ────────────────────────────────────────────────────
         ink: '#0f172a',
         'ink-soft': '#334155',
         muted: '#64748b',
         'muted-light': '#94a3b8',
         'muted-2': '#cbd5e1',
-        // ── Lines / borders ─────────────────────────────────────────
         border: '#e2e8f0',
         'border-light': '#f1f5f9',
         line: '#e2e8f0',
-        // ── Brand / accent (Professional Indigo) ────────────────────
         primary: '#4f46e5',
         'primary-600': '#4338ca',
         'primary-700': '#3730a3',
@@ -32,7 +28,6 @@ export default {
         brand: '#4f46e5',
         'brand-soft': '#818cf8',
         'brand-ink': '#4338ca',
-        // ── Status colors ──────────────────────────────────────────
         success: '#10b981',
         'success-soft': '#d1fae5',
         warning: '#f59e0b',
@@ -41,7 +36,6 @@ export default {
         'danger-soft': '#fee2e2',
         info: '#0ea5e9',
         'info-soft': '#e0f2fe',
-        // ── Data viz palette ────────────────────────────────────────
         'accent-blue': '#3b82f6',
         'accent-indigo': '#4f46e5',
         'accent-purple': '#8b5cf6',
@@ -49,7 +43,6 @@ export default {
         'accent-emerald': '#10b981',
         'accent-amber': '#f59e0b',
         'accent-rose': '#ef4444',
-        // ── Mini app "Gold Coin" theme (tap-to-earn) ───────────────
         coin: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -62,7 +55,6 @@ export default {
           800: '#92400e',
           900: '#78350f',
         },
-        // Dark teal-green surfaces (crypto-tap template)
         night: {
           950: '#07110e',
           900: '#0b1714',
@@ -79,6 +71,24 @@ export default {
         'spin-slow': 'spin 0.6s linear infinite',
         'fade-in': 'fadeIn 0.2s ease',
         'count-up': 'countUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        'fade-in-up': 'fadeInUp 0.5s ease both',
+        'scale-in': 'scaleIn 0.35s ease both',
+        'slide-up': 'slideUp 0.4s ease both',
+        'number-pop': 'numberPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'progress': 'progressGrow 1s ease both',
+        'float': 'float 3s ease-in-out infinite',
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'coin-spin': 'coinSpin 1.1s cubic-bezier(0.4, 0, 0.2, 1)',
+        'ring-pulse': 'ringPulse 2.4s ease-in-out infinite',
+        'confetti': 'confettiFall 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+        'sparkle': 'sparklePop 0.8s ease-out forwards',
+        'pulse-ring': 'pulseRing 1.5s ease-out infinite',
+        'slide-in-right': 'slideInRight 0.35s ease both',
+        'slide-in-left': 'slideInLeft 0.35s ease both',
+        'heartbeat': 'heartbeat 1.2s ease-in-out infinite',
+        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        'shimmer': 'shimmer 1.8s infinite',
+        'bounce-in': 'bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
       },
       keyframes: {
         toastIn: {
@@ -101,6 +111,84 @@ export default {
           from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        fadeInUp: {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        scaleIn: {
+          from: { opacity: '0', transform: 'scale(0.92)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        slideUp: {
+          from: { opacity: '0', transform: 'translateY(28px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        numberPop: {
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '55%': { transform: 'scale(1.25)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        progressGrow: {
+          from: { width: '0' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 12px rgba(45,212,191,0.4)' },
+          '50%': { boxShadow: '0 0 30px rgba(45,212,191,0.75)' },
+        },
+        coinSpin: {
+          '0%': { transform: 'rotateY(0deg)' },
+          '100%': { transform: 'rotateY(360deg)' },
+        },
+        ringPulse: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.55' },
+          '50%': { transform: 'scale(1.05)', opacity: '0.9' },
+        },
+        confettiFall: {
+          '0%': { transform: 'translateY(-10px) rotate(0deg) scale(1)', opacity: '1' },
+          '100%': { transform: 'translateY(100vh) rotate(720deg) scale(0.3)', opacity: '0' },
+        },
+        sparklePop: {
+          '0%': { transform: 'scale(0) rotate(0deg)', opacity: '0' },
+          '50%': { transform: 'scale(1.3) rotate(180deg)', opacity: '1' },
+          '100%': { transform: 'scale(1) rotate(360deg)', opacity: '0' },
+        },
+        pulseRing: {
+          '0%': { boxShadow: '0 0 0 0 rgba(45, 212, 191, 0.4)' },
+          '70%': { boxShadow: '0 0 0 20px rgba(45, 212, 191, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(45, 212, 191, 0)' },
+        },
+        slideInRight: {
+          from: { opacity: '0', transform: 'translateX(20px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInLeftFast: {
+          from: { opacity: '0', transform: 'translateX(-20px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        heartbeat: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '15%': { transform: 'scale(1.15)' },
+          '30%': { transform: 'scale(1)' },
+          '45%': { transform: 'scale(1.08)' },
+          '60%': { transform: 'scale(1)' },
+        },
+        glowPulse: {
+          '0%, 100%': { filter: 'brightness(1) drop-shadow(0 0 8px rgba(251, 191, 36, 0.3))' },
+          '50%': { filter: 'brightness(1.2) drop-shadow(0 0 20px rgba(251, 191, 36, 0.6))' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        bounceIn: {
+          '0%': { transform: 'scale(0.6)', opacity: '0' },
+          '60%': { transform: 'scale(1.08)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
       },
       boxShadow: {
         card: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)',
@@ -110,13 +198,11 @@ export default {
         'focus-ring': '0 0 0 3px rgba(79, 70, 229, 0.25)',
         'sidebar': '4px 0 20px rgba(0, 0, 0, 0.06)',
         'elevated': '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-        // ── Mini app coin glows / 3D press ──────────────────────────
         'coin': '0 0 24px rgba(251, 191, 36, 0.35)',
         'coin-sm': '0 0 14px rgba(251, 191, 36, 0.25)',
         'coin-lg': '0 0 44px rgba(251, 191, 36, 0.45)',
         'press': '0 4px 0 0 #b45309, 0 6px 12px rgba(0, 0, 0, 0.35)',
         'press-active': '0 1px 0 0 #b45309, 0 2px 6px rgba(0, 0, 0, 0.3)',
-        // Teal accent glows (crypto-tap template)
         'teal': '0 0 24px rgba(45, 212, 191, 0.4)',
         'teal-sm': '0 0 14px rgba(45, 212, 191, 0.3)',
         'teal-lg': '0 0 50px rgba(45, 212, 191, 0.5)',

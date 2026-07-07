@@ -2,11 +2,6 @@ import React from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useTelegram, useBackButton } from '../../hooks/useTelegram.js';
 
-/**
- * Standard screen wrapper: consistent padding + optional section header
- * (title, back button, right-slot / refresh). The persistent balance top-bar
- * lives in App.jsx above all screens.
- */
 export default function ScreenShell({
   title,
   subtitle,
@@ -19,11 +14,16 @@ export default function ScreenShell({
   className = '',
 }) {
   const { haptic } = useTelegram();
-  // Wire the Telegram hardware back button when a back handler is present.
   useBackButton(!!onBack, () => onBack?.());
 
   return (
-    <div className={`coin-bg min-h-full px-4 pb-28 pt-4 ${className}`}>
+    <div
+      className={`isolate min-h-full px-4 pb-28 pt-4 ${className}`}
+      style={{
+        background:
+          'radial-gradient(circle at 50% -4%, rgba(45, 212, 191, 0.16), transparent 36%), radial-gradient(circle at 86% 14%, rgba(34, 211, 238, 0.12), transparent 34%), radial-gradient(circle at 8% 70%, rgba(251, 191, 36, 0.08), transparent 32%), linear-gradient(180deg, #0c1a16 0%, #091512 48%, #07110e 100%)',
+      }}
+    >
       {(title || onBack) && (
         <div className="mb-4 flex items-center gap-3">
           {onBack && (

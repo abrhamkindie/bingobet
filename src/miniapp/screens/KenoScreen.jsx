@@ -10,6 +10,7 @@ import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import StakeControl from '../components/StakeControl.jsx';
 import { Spinner, ErrorState } from '../components/ui/states.jsx';
+import CelebrationOverlay from '../components/CelebrationOverlay.jsx';
 
 export default function KenoScreen({ onBack }) {
   const { player, patchPlayer, reload } = useContext(PlayerContext);
@@ -21,6 +22,7 @@ export default function KenoScreen({ onBack }) {
   const [stake, setStake] = useState(10);
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const balance = Number(player?.wallet_balance || 0);
   const pool = cfg?.keno?.pool || 40;
@@ -61,7 +63,7 @@ export default function KenoScreen({ onBack }) {
       setResult(res);
       patchPlayer({ wallet_balance: res.balance });
       reload();
-      if (res.win) { haptic('success'); addToast(`You won ${fmtETB(res.payout)} ETB! (${res.hits} hits)`, 'success'); }
+      if (res.win) { haptic('success'); addToast(`You won ${fmtETB(res.payout)} ETB! (${res.hits} hits)`, 'success'); setShowCelebration(true); }
       else { haptic('warning'); addToast(`${res.hits} hits — no win this time`, 'info'); }
     } catch (err) {
       addToast(errorMessage(err), 'error');
@@ -108,7 +110,7 @@ export default function KenoScreen({ onBack }) {
           let cls = 'border border-white/10 bg-white/[0.03] text-slate-400';
           if (result) {
             if (drawn && picked) cls = 'bg-gradient-to-br from-emerald-300 to-emerald-500 text-emerald-950 shadow-[0_0_12px_rgba(16,185,129,0.5)]';
-            else if (drawn) cls = 'coin-disc text-amber-900/80';
+            else if (drawn) cls = 'bg-gradient-to-br from-coin-300 via-coin-500 to-coin-600 text-amber-900/80 shadow-[0_0_0_3px_rgba(180,83,9,0.55),0_0_0_6px_rgba(251,191,36,0.18)]';
             else if (picked) cls = 'border border-teal-400/40 text-teal-300/60';
           } else if (picked) {
             cls = 'bg-gradient-to-br from-teal-300 to-teal-500 text-teal-950 shadow-teal-sm';
@@ -157,6 +159,15 @@ export default function KenoScreen({ onBack }) {
           </div>
         </div>
       )}
+
+      {/* Celebration overlay on win */}
+      <CelebrationOverlay
+        show={showCelebration}
+        result={result}
+        title={`${result?.hits || 0} Hits!`}
+        subtitle={result && result.win ? `${result.multiplier}× · +${fmtETB(result.payout)} ETB` : ''}
+        onComplete={() => setShowCelebration(false)}
+      />
     </ScreenShell>
   );
 }

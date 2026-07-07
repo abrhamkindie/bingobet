@@ -11,7 +11,9 @@ import { errorMessage, fmtETB } from '../i18n.js';
 import ScreenShell from '../components/ui/ScreenShell.jsx';
 import Button from '../components/ui/Button.jsx';
 import StakeControl from '../components/StakeControl.jsx';
+import StatTile from '../components/ui/StatTile.jsx';
 import { Spinner, ErrorState } from '../components/ui/states.jsx';
+import CelebrationOverlay from '../components/CelebrationOverlay.jsx';
 
 // ── Constants ──────────────────────────────────────────
 
@@ -84,6 +86,7 @@ export default function RouletteScreen({ onBack }) {
   const [stake, setStake] = useState(10);
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [rotation, setRotation] = useState(0);
   const rotRef = useRef(0);
   const timerRef = useRef([]);
@@ -192,6 +195,7 @@ export default function RouletteScreen({ onBack }) {
           playWin();
           const wonBets = res.results.filter((b) => b.won);
           addToast(`Number ${res.number} ${res.numberColor} — ${wonBets.length} bet${wonBets.length > 1 ? 's' : ''} won ${fmtETB(res.totalPayout)} ETB!`, 'success');
+          setShowCelebration(true);
         } else {
           haptic('warning');
           playLose();
@@ -274,7 +278,7 @@ export default function RouletteScreen({ onBack }) {
         {/* Pointer */}
         <div className="absolute -top-1 z-20 h-0 w-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-coin-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
         {/* Glow */}
-        <div className="glow-ring absolute inset-0 rounded-full" />
+        <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle at 50% 42%, rgba(45, 212, 191, 0.18), rgba(13, 148, 136, 0.04) 55%, transparent 70%)', boxShadow: '0 0 0 1px rgba(94, 234, 212, 0.25), inset 0 0 60px rgba(45, 212, 191, 0.18), 0 0 60px rgba(45, 212, 191, 0.22)' }} />
         {/* Rotating wheel */}
         <div
           className="relative rounded-full border-4 border-white/10"
@@ -308,7 +312,7 @@ export default function RouletteScreen({ onBack }) {
           })}
         </div>
         {/* Hub */}
-        <div className="coin-disc absolute grid h-12 w-12 place-items-center rounded-full text-base font-black text-amber-900/80">₿</div>
+        <div className="absolute grid h-12 w-12 place-items-center rounded-full text-base font-black text-amber-900/80" style={{ background: 'radial-gradient(circle at 35% 28%, #fef9c3 0%, #fcd34d 30%, #f59e0b 62%, #b45309 100%)', boxShadow: '0 0 0 3px rgba(180, 83, 9, 0.55), 0 0 0 6px rgba(251, 191, 36, 0.18), 0 10px 30px rgba(180, 83, 9, 0.45), inset 0 3px 8px rgba(255, 255, 255, 0.65), inset 0 -6px 12px rgba(146, 64, 14, 0.55)' }}>₿</div>
       </div>
 
       {/* ── Result banner ── */}
@@ -525,6 +529,15 @@ export default function RouletteScreen({ onBack }) {
 
       {/* ── History ── */}
       <RouletteHistory history={histData?.bets} />
+
+      {/* Celebration overlay on win */}
+      <CelebrationOverlay
+        show={showCelebration}
+        result={result}
+        title={`${result?.number} ${result?.numberColor || ''}`}
+        subtitle={result && result.win ? `${result.results.filter(b => b.won).length} bet${result.results.filter(b => b.won).length !== 1 ? 's' : ''} won · +${fmtETB(result.totalPayout)} ETB` : ''}
+        onComplete={() => setShowCelebration(false)}
+      />
     </ScreenShell>
   );
 }
@@ -620,21 +633,25 @@ function RouletteHistory({ history }) {
       {stats && (
         <div className="mt-2 grid grid-cols-4 gap-1.5">
           <StatTile
+            size="sm"
             label="Spins"
             value={stats.total}
             color="text-slate-200"
           />
           <StatTile
+            size="sm"
             label="Win Rate"
             value={`${stats.winRate}%`}
             color={stats.winRate >= 30 ? 'text-emerald-300' : stats.winRate >= 10 ? 'text-amber-300' : 'text-slate-300'}
           />
           <StatTile
+            size="sm"
             label={`${stats.wins}W / ${stats.losses}L`}
             value={stats.netResult >= 0 ? `+${fmtETB(stats.netResult)}` : fmtETB(stats.netResult)}
             color={stats.netResult > 0 ? 'text-emerald-300' : stats.netResult === 0 ? 'text-slate-300' : 'text-rose-300'}
           />
           <StatTile
+            size="sm"
             label="Best Win"
             value={`${fmtETB(stats.biggestWin)}`}
             color="text-coin-300"
@@ -711,16 +728,6 @@ function HistoryRow({ bet }) {
       }`}>
         {isWin ? 'Won' : 'Lost'}
       </span>
-    </div>
-  );
-}
-
-/** Mini stat tile for the summary bar. */
-function StatTile({ label, value, color = 'text-slate-200' }) {
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] px-2 py-1.5 text-center">
-      <p className={`text-xs font-black leading-tight ${color}`}>{value}</p>
-      <p className="text-[9px] text-slate-500 mt-0.5">{label}</p>
     </div>
   );
 }

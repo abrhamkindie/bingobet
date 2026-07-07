@@ -3,6 +3,7 @@ import { logger } from './utils/logger.js';
 import { createServer } from './server.js';
 import { createBot } from './bot/index.js';
 import { close as closeDb, healthcheck } from './db/index.js';
+import { initEngine } from './engine/index.js';
 
 async function main() {
   try {
@@ -12,6 +13,9 @@ async function main() {
     logger.error('Cannot connect to database', { error: err.message });
     process.exit(1);
   }
+
+  // Initialize GameEngine with all game plugins
+  await initEngine();
 
   const bot = createBot();
   const { app, stopScheduler } = createServer(bot);

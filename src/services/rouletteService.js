@@ -1,22 +1,17 @@
 /**
  * Roulette — European-style wheel with a betting "spine".
  *
- * Bet types available on the board:
- *   Even/Odd · High/Low · Red/Black
- *   Column 1 (every 3rd starting 1) · Column 2 (every 3rd starting 2)
- *   ABCDEF colour sectors · Dozens (1st / 2nd / 3rd)
- *   Tweens (11, 22, 33)
- *
  * Payouts follow standard European roulette odds; the green 0 gives the house edge.
+ *
+ * Pure helpers remain here for unit tests (rouletteService.test.js).
+ * playRoulette and settlement are delegated to the GameEngine.
+ *
+ * @module services/rouletteService
  */
 
-import { withTransaction } from '../db/index.js';
-import * as settingsRepo from '../db/repositories/settings.js';
-import { AppError } from '../utils/errors.js';
-import { logger } from '../utils/logger.js';
-
-// ── Cryptographic RNG ──────────────────────────────────
 import crypto from 'node:crypto';
+import { engine } from '../engine/index.js';
+
 const secureRng = () => crypto.randomInt(0, 2 ** 31) / 2 ** 31;
 
 // ── Number definitions ──────────────────────────────────
@@ -183,7 +178,7 @@ const BET_GROUPS = [
   { category: 'Tweens',      payout: '11:1', bets: ['tweens'] },
 ];
 
-const BET_MAP = Object.fromEntries(BET_TYPES.map((b) => [b.key, b]));
+export const BET_MAP = Object.fromEntries(BET_TYPES.map((b) => [b.key, b]));
 
 /** Return the list of straight-up number bet keys (n0–n36). */
 export function getStraightUpKeys() {
@@ -206,32 +201,6 @@ const SECTOR_COLORS = {
   sectorF: '#ec4899', // pink
 };
 
-/**
- * Get the roulette number board layout for 0–36 in standard roulette grid order.
- * Returns an array of rows, each row is an array of { number, color }.
- * Standard European roulette board: 0 on top, then 3 rows of 12.
- */
-function getBoardLayout() {
-  // 3 columns × 12 rows (plus 0 on top)
-  const rows = [];
-  // Row 0: just the zero
-  rows.push([{ number: 0, color: 'green' }]);
-
-  // Rows 1-12: 3 numbers each
-  for (let row = 0; row < 12; row++) {
-    const r = [];
-    for (let col = 0; col < 3; col++) {
-      const n = col * 12 + row + 1; // col1=1,4,7... col2=2,5,8... col3=3,6,9...
-      r.push({
-        number: n,
-        color: isRed(n) ? 'red' : 'black',
-      });
-    }
-    rows.push(r);
-  }
-  return rows;
-}
-
 // ── Public helpers (shared with frontend) ──────────────
 
 export function getAllBetTypes() {
@@ -249,24 +218,6 @@ export function getSectorColors() {
 export function getNumberColor(n) {
   if (n === 0) return 'green';
   return isRed(n) ? 'red' : 'black';
-}
-
-// ── Config ─────────────────────────────────────────────
-
-async function getRouletteConfig() {
-  const [minStake, maxStake] = await Promise.all([
-    settingsRepo.getNumber('instant_min_stake', 10),
-    settingsRepo.getNumber('instant_max_stake', 1000),
-  ]);
-  return { minStake, maxStake };
-}
-
-function validateStake(stake, cfg) {
-  const s = Number(stake);
-  if (!Number.isFinite(s) || s <= 0) throw new AppError('INVALID_STAKE', 422, 'Invalid stake');
-  if (s < cfg.minStake) throw new AppError('STAKE_TOO_LOW', 422, `Minimum stake is ${cfg.minStake} ETB`);
-  if (s > cfg.maxStake) throw new AppError('STAKE_TOO_HIGH', 422, `Maximum stake is ${cfg.maxStake} ETB`);
-  return s;
 }
 
 // ── Core game logic ────────────────────────────────────
@@ -296,107 +247,9 @@ export function resolveBets(number, selectedBets, stake) {
   return { results, totalPayout };
 }
 
-// ── Play handler ───────────────────────────────────────
+// ── Delegated to engine ────────────────────────────────
 
-export async function playRoulette({ playerId, bets, stakePerBet }, rng = secureRng) {
-  const cfg = await getRouletteConfig();
-  const s = validateStake(stakePerBet, cfg);
-
-  if (!Array.isArray(bets) || bets.length === 0) {
-    throw new AppError('NO_BETS', 422, 'Select at least one bet type');
-  }
-
-  // Validate all bet keys
-  for (const key of bets) {
-    if (!BET_MAP[key]) {
-      throw new AppError('INVALID_BET', 422, `Unknown bet type: ${key}`);
-    }
-  }
-
-  const totalStake = Math.round(s * bets.length * 100) / 100;
-
-  const number = drawNumber(rng);
-  const { results, totalPayout } = resolveBets(number, bets, s);
-  const netResult = totalPayout - totalStake;
-
-  // Settle the bet
-  const { balance } = await settleRouletteBet({
-    playerId,
-    stake: totalStake,
-    payout: totalPayout,
-    number,
-    bets: results,
-    stakePerBet: s,
-  });
-
-  logger.info('Roulette played', {
-    playerId,
-    number,
-    bets: bets.length,
-    totalStake,
-    totalPayout,
-    netResult,
-  });
-
-  return {
-    number,
-    numberColor: getNumberColor(number),
-    results,
-    totalStake,
-    totalPayout,
-    netResult,
-    balance,
-    win: totalPayout > 0,
-    stakePerBet: s,
-  };
-}
-
-// ── Ledger ─────────────────────────────────────────────
-
-async function settleRouletteBet({ playerId, stake, payout, number, bets, stakePerBet }) {
-  return withTransaction(async (client) => {
-    const { rows: pRows } = await client.query(
-      'SELECT wallet_balance FROM players WHERE id = $1 FOR UPDATE',
-      [playerId]
-    );
-    const player = pRows[0];
-    if (!player) throw new AppError('PLAYER_NOT_FOUND', 404, 'Player not found');
-    const bal0 = Number(player.wallet_balance);
-    if (bal0 < stake) throw new AppError('INSUFFICIENT_BALANCE', 402, 'Insufficient balance');
-
-    const bal1 = bal0 - stake;
-    const bal2 = bal1 + payout;
-
-    await client.query(
-      `UPDATE players
-         SET wallet_balance = $2, total_spent = total_spent + $3, total_won = total_won + $4
-       WHERE id = $1`,
-      [playerId, bal2, stake, payout]
-    );
-
-    const outcome = { number, bets, stakePerBet };
-    const { rows: betRows } = await client.query(
-      `INSERT INTO instant_bets (player_id, game_type, stake, payout, multiplier, outcome)
-       VALUES ($1, 'roulette', $2, $3, $4, $5) RETURNING id`,
-      [playerId, stake, payout, payout > 0 ? Math.round((payout / stake) * 100) / 100 : 0, JSON.stringify(outcome)]
-    );
-    const betId = betRows[0].id;
-
-    const betRef = `ROULETTE-${betId}`;
-    await client.query(
-      `INSERT INTO transactions (player_id, type, amount, balance_before, balance_after, reference, status, notes)
-       VALUES ($1, 'bet', $2, $3, $4, $5, 'completed', $6)`,
-      [playerId, stake, bal0, bal1, `${betRef}-B`, 'roulette stake']
-    );
-
-    if (payout > 0) {
-      await client.query(
-        `INSERT INTO transactions (player_id, type, amount, balance_before, balance_after, reference, status, notes)
-         VALUES ($1, 'payout', $2, $3, $4, $5, 'completed', $6)`,
-        [playerId, payout, bal1, bal2, `${betRef}-P`, `roulette win`]
-      );
-    }
-
-    return { betId, balance: bal2 };
-  });
+/** @deprecated Use engine.play('roulette', ...) via GameEngine */
+export async function playRoulette({ playerId, bets, stakePerBet }) {
+  return engine.play('roulette', playerId, { bets, stakePerBet });
 }
